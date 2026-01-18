@@ -1,0 +1,74 @@
+1. install laravel
+2. install dan jadikan production sampai bawah di link ini
+	https://filamentphp.com/docs/3.x/panels/installation
+3.lakukan di terminal untuk ini
+--- ini link nya
+https://github.com/filamentphp/filament/discussions/11481
+---
+	composer dump-autoload
+	php artisan config:cache
+	php artisan route:cache
+	php artisan view:cache
+	php artisan vendor:publish --force --tag=livewire:assets
+	php artisan livewire:publish
+	php artisan filament:assets
+	php artisan filament:cache-components
+	
+
+4. Edit 
+APP_URL=APP_URL=http://localhost/php8.2.b/stitta/public ini di .env
+app/Providers/AppServiceProvider.php atau kalau gak bisa di web.php nya
+
+public function boot(): void
+{
+    	Livewire::setUpdateRoute(function ($handle) {
+    		return Route::post('php8.2.b/stitta/public/livewire/update', $handle);
+	});
+
+	Livewire::setScriptRoute(function ($handle) {
+    		return Route::get('php8.2.b/stitta/public/livewire/livewire.js', $handle);
+	});
+}
+----ini jika memang terpaksa menggunakan public
+--- tapi kalau menggunakan php artisan serve di atas ini tidak perlu
+5. jika melakukan perbaikan di route atau terkait dengan route maka lakukan ini
+----   php artisan route:cache
+6. setelah habis melakukan permbaruan melakukan ini- misal bikin resource
+php artisan filament:cache-components
+
+
+
+7. untuk plugin shield
+ plugin roles menggunakan filament shield
+--- ini saat menggunakan php artisan shield:install maka di panelProvidernya akan error maka tambahkan manual
+-------- di plugin nya /di file panelProvidernya
+ a. untuk semua user bisa akses panel
+--
+public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+ini di letakkan di model user
+-- untuk buat super admin
+-- php artisan shield:super-admin
+--- terahir ini php artisan shield:generate --all
+
+8 menggunakan spatie media library - ini cukup lancar tinggal terahir
+----php artisan storage:link
+dan sudah berjalan
+9.production sampai bawah di link ini
+	https://filamentphp.com/docs/3.x/panels/installation
+
+
+
+10. membuat symlink di hosting
+ln -s /home/vnqnlriq/stittogoambarsari.usbnbk.my.id/storage/app/public /home/vnqnlriq/stittogoambarsari.usbnbk.my.id/public/storage ini contoh
+
+
+11. untuk storage agar bisa di akses oleh domain berbeda buat htaccess
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+</IfModule>
+
+12. spatie midia library -> minta https bukan http di env nya ,
+kalau pakek http nanti pas edit gambar nya tidak muncul gambar dan tidak bisa edit

@@ -1,0 +1,52 @@
+untuk mengganti versi php di laragon 
+1. composer nya juga di install dan arahkan ke php yang di pakai
+
+/livewire
+
+php artisan vendor:publish --force --tag=livewire:assets
+
+//tambahkan ini di web.php dan sesuiakan dengan domain nya
+Livewire::setUpdateRoute(function ($handle) {
+    return Route::post('php8.2/bismillah/public/livewire/update', $handle);
+});
+
+//
+untuk gambar
+<img src="{{ asset(Storage::url($donasi->image->file_path)) }}" class="img-thumbnail" alt="...">
+
+
+1. .env
+2. npm run build
+3. php artisan storage:link
+----ln -s /home/lazismu1/lazismu.lazismukotapasuruan.org/storage/app/public storage
+- kalau sudah di hosting harus bikin symlink lagi -- konsutasi dengan admin/cs hosting
+
+
+// filament 
+1. untuk dashboard - ada di adminPanleProvider
+composer install --no-dev --optimize-autoloader
+
+//untuk langsung mengarahkan ke folder public ketika sudah production
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ /public/$1 [L,QSA]
+
+dan menambahkan ini di model user jika sudah production
+
+<?php
+
+namespace App\Models;
+
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+
+class User extends Authenticatable implements FilamentUser
+{
+    // ...
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+}
