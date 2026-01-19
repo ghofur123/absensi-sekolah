@@ -1,62 +1,58 @@
 <?php
 
-namespace App\Filament\Resources\SiswaResource\Pages;
+namespace App\Filament\Resources\GuruResource\Pages;
 
-use App\Filament\Resources\SiswaResource;
-use App\Imports\SiswaImport;
+use App\Filament\Resources\GuruResource;
+use App\Imports\GuruImport;
+use App\Models\Guru;
+use App\Models\Lembaga;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
-use Maatwebsite\Excel\Facades\Excel;
+use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
-use App\Models\Lembaga;
-use App\Models\Kelas;
-use Filament\Actions\Action;
+use Filament\Resources\Pages\ListRecords;
+use HayderHatem\FilamentExcelImport\Actions\FullImportAction;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
-class ListSiswas extends ListRecords
+class ListGurus extends ListRecords
 {
-    protected static string $resource = SiswaResource::class;
+    protected static string $resource = GuruResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('importSiswa')
+            Action::make('importGuru')
                 ->label('Import Excel')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->slideOver()
+
                 ->form([
                     Select::make('lembaga_id')
                         ->label('Lembaga')
                         ->options(Lembaga::pluck('nama_lembaga', 'id'))
                         ->required(),
 
-                    Select::make('kelas_id')
-                        ->label('Kelas')
-                        ->options(Kelas::pluck('nama_kelas', 'id'))
-                        ->required(),
-
                     FileUpload::make('file')
                         ->label('File Excel')
+                        ->required()
                         ->acceptedFileTypes([
-                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel',
                         ])
-                        ->disk('local')
-                        ->required(),
+                        ->disk('local'), // penting
                 ])
+
                 ->action(function (array $data) {
                     Excel::import(
-                        new SiswaImport(
-                            $data['lembaga_id'],
-                            $data['kelas_id']
-                        ),
+                        new GuruImport($data['lembaga_id']),
                         Storage::disk('local')->path($data['file'])
                     );
                 }),
             Actions\CreateAction::make(),
             Action::make('downloadTemplate')
                 ->label('Download Template')
-                ->url(url('/download-template/siswa'))
+                ->url(url('/download-template/guru'))
                 ->openUrlInNewTab(),
         ];
     }
