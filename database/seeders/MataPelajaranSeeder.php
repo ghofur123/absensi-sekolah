@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Lembaga;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -26,13 +27,17 @@ class MataPelajaranSeeder extends Seeder
             'Informatika',
         ];
 
+        $lembagas = Lembaga::all();
+
         foreach ($data as $nama) {
-            DB::table('mata_pelajarans')->insert([
-                'nama_mapel' => $nama,
-                'lembaga_id' => rand(1, 10),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            foreach ($lembagas as $lembaga) {  // looping per lembaga
+                DB::table('mata_pelajarans')->insert([
+                    'nama_mapel' => $nama,
+                    'lembaga_id' => $lembaga->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }

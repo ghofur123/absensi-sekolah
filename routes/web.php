@@ -14,7 +14,7 @@ Route::get('/', function () {
 //     return Route::post('./sodaqoh/absensi-sekolah/public/livewire/update', $handle);
 // });
 // Livewire::setScriptRoute(function ($handle) {
-//     return Route::get('./sodaqoh/absensi-sekolah/public/livewire/livewire.js', $handle);
+//     return Route::get('./sodaqoh/absensi-sekolah/livewire/livewire.js', $handle);
 // });
 Route::get('/run-artisan', function () {
     // Clear dan cache config
