@@ -1,48 +1,40 @@
-<div
-    x-data="qrScanner({{ $jadwal->id }})"
-    x-init="init()"
-    class="space-y-3"
->
-    <video id="preview" class="w-full rounded-lg border"></video>
-
-    <p class="text-sm text-gray-600">
-        Arahkan kamera ke QR Code siswa
-    </p>
-
-    <p x-text="message" class="text-green-600 font-semibold"></p>
-</div>
-
+<html>
+<head>
+    <title>Html-Qrcode Demo</title>
+<body>
+    <div id="qr-reader" style="width:500px; border:1px solid #fff;"></div>
+    <div id="qr-reader-results"></div>
+    scan
+</body>
 <script src="https://unpkg.com/html5-qrcode"></script>
-
 <script>
-function qrScanner(jadwalId) {
-    return {
-        html5QrCode: null,
-        message: '',
-
-        init() {
-            this.html5QrCode = new Html5Qrcode("preview");
-
-            Html5Qrcode.getCameras().then(cameras => {
-                if (cameras.length > 0) {
-                    this.html5QrCode.start(
-                        cameras[0].id,
-                        { fps: 10, qrbox: 250 },
-                        (decodedText) => this.onScan(decodedText)
-                    );
-                }
-            });
-        },
-
-        onScan(code) {
-            this.html5QrCode.stop();
-            this.message = 'QR terdeteksi, menyimpan absensi...';
-
-            Livewire.emit('absensi-scan', {
-                jadwal_id: jadwalId,
-                kode: code
-            });
+    function docReady(fn) {
+        // see if DOM is already available
+        if (document.readyState === "complete"
+            || document.readyState === "interactive") {
+            // call on next available tick
+            setTimeout(fn, 1);
+        } else {
+            document.addEventListener("DOMContentLoaded", fn);
         }
     }
-}
+
+    docReady(function () {
+        var resultContainer = document.getElementById('qr-reader-results');
+        var lastResult, countResults = 0;
+        function onScanSuccess(decodedText, decodedResult) {
+            if (decodedText !== lastResult) {
+                ++countResults;
+                lastResult = decodedText;
+                // Handle on success condition with the decoded message.
+                console.log(`Scan result ${decodedText}`, decodedResult);
+            }
+        }
+
+        var html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    });
 </script>
+</head>
+</html>

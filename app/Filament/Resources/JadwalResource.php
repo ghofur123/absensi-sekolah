@@ -10,6 +10,7 @@ use App\Models\Kelas;
 use App\Models\Lembaga;
 use App\Models\Siswa;
 use Carbon\Carbon;
+use CCK\FilamentQrcodeScannerHtml5\BarcodeScannerAction;
 use Filament\Forms;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Grid;
@@ -131,17 +132,17 @@ class JadwalResource extends Resource
                 Tables\Actions\EditAction::make(),
 
                 Action::make('absensi')
-                    ->label('Absensi')
+                    ->label('Absensi Manual')
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('success')
                     ->modalHeading('Absensi Siswa')
                     ->modalWidth('7xl')
                     ->fillForm(function ($record) {
                         return [
-                            'lembaga_id' => $record->lembaga_id,
-                            'kelas_id' => $record->kelas_id,
+                            'lembaga_id' => null,
+                            'kelas_id' => null,
                             'jadwal_id' => $record->id,
-                            'daftar_absensi' => [], // Kosongkan dulu, akan diisi setelah pilih kelas
+                            'daftar_absensi' => [],
                         ];
                     })
                     ->form([
@@ -150,18 +151,59 @@ class JadwalResource extends Resource
                             ->options(Lembaga::pluck('nama_lembaga', 'id'))
                             ->required()
                             ->dehydrated()
-                            ->live(),
+                            ->live()
+                            ->afterStateUpdated(function (\Filament\Forms\Set $set) {
+                                $set('kelas_id', null);
+                                $set('daftar_absensi', []);
+                            }),
 
                         Select::make('kelas_id')
                             ->label('Kelas')
-                            ->options(
-                                fn(callable $get) =>
-                                Kelas::where('lembaga_id', $get('lembaga_id'))
-                                    ->pluck('nama_kelas', 'id')
-                            )
+                            ->options(function (callable $get) {
+                                $lembagaId = $get('lembaga_id');
+
+                                if (!$lembagaId) {
+                                    return [];
+                                }
+
+                                return Kelas::where('lembaga_id', $lembagaId)
+                                    ->pluck('nama_kelas', 'id');
+                            })
                             ->required()
+                            ->dehydrated()
                             ->live()
-                            ->dehydrated(),
+                            ->disabled(fn(callable $get) => !$get('lembaga_id'))
+                            ->placeholder('Pilih lembaga terlebih dahulu')
+                            ->afterStateUpdated(function (\Filament\Forms\Get $get, \Filament\Forms\Set $set, $state) {
+                                if (!$state) {
+                                    $set('daftar_absensi', []);
+                                    return;
+                                }
+
+                                $jadwalId = $get('jadwal_id');
+
+                                // Ambil data absensi hari ini untuk jadwal ini
+                                $absensiHariIni = Absensi::where('jadwal_id', $jadwalId)
+                                    ->whereDate('created_at', today())
+                                    ->pluck('status', 'siswa_id')
+                                    ->toArray();
+
+                                // Ambil siswa sesuai kelas yang dipilih
+                                $siswaList = Siswa::where('kelas_id', $state)
+                                    ->get()
+                                    ->map(function ($siswa, $index) use ($absensiHariIni) {
+                                        return [
+                                            'siswa_id' => $siswa->id,
+                                            'nama_siswa' => $siswa->nama_siswa,
+                                            // Cek di database, jika ada gunakan status dari DB, jika tidak default 'alpa'
+                                            'status' => $absensiHariIni[$siswa->id] ?? 'alpa',
+                                            'nomor' => $index + 1,
+                                        ];
+                                    })
+                                    ->toArray();
+
+                                $set('daftar_absensi', $siswaList);
+                            }),
 
                         Hidden::make('jadwal_id'),
 
@@ -169,13 +211,11 @@ class JadwalResource extends Resource
                             ->label('Daftar Siswa')
                             ->schema([
                                 Hidden::make('siswa_id'),
-
                                 TextInput::make('nama_siswa')
                                     ->label('Nama Siswa')
                                     ->disabled()
                                     ->prefix(fn($get) => $get('nomor') . '.')
                                     ->columnSpan(1),
-
                                 ToggleButtons::make('status')
                                     ->label(false)
                                     ->options([
@@ -200,14 +240,14 @@ class JadwalResource extends Resource
                                     ->grouped()
                                     ->required()
                                     ->columnSpan(2),
-
                                 Hidden::make('nomor'),
                             ])
                             ->columns(3)
                             ->deletable(false)
                             ->addable(false)
                             ->reorderable(false)
-                            ->defaultItems(0),
+                            ->defaultItems(0)
+                            ->visible(fn(callable $get) => !empty($get('daftar_absensi'))),
                     ])
                     ->action(function ($record, $data) {
                         $userId = Auth::id();
@@ -236,16 +276,57 @@ class JadwalResource extends Resource
                             ->send();
                     }),
 
-                Action::make('scanQR')
-                    ->label('Scan QR')
-                    ->icon('heroicon-o-qr-code')
-                    ->color('primary')
-                    ->modalHeading('Scan QR Code Siswa')
-                    ->modalWidth('lg')
-                    ->modalContent(fn($record) => view(
-                        'filament.absensi.scan-qr',
-                        ['jadwal' => $record]
-                    )),
+                // Tables\Actions\Action::make('scanQR')
+                //     ->label('Scan QR')
+                //     ->icon('heroicon-o-qr-code')
+                //     ->color('primary')
+                //     ->action(function ($record, $data, $get) {
+                //         // $data['qr_code'] hanya kalau pakai form, tapi di BarcodeScannerAction callback kita dapat $value
+                //         // Jika pakai BarcodeScannerAction langsung, callback ada di ->afterScan()
+                //     })
+                //     ->afterScan(function ($record, $value) {
+                //         // $value = QR code yang discan
+                //         $siswa = \App\Models\Siswa::where('qr_code', $value)->first();
+
+                //         if (!$siswa) {
+                //             \Filament\Notifications\Notification::make()
+                //                 ->title('Gagal!')
+                //                 ->danger()
+                //                 ->body('QR Code tidak valid: ' . $value)
+                //                 ->send();
+                //             return;
+                //         }
+
+                //         $sudahAbsen = \App\Models\Absensi::where('siswa_id', $siswa->id)
+                //             ->where('jadwal_id', $record->id)
+                //             ->whereDate('created_at', today())
+                //             ->exists();
+
+                //         if ($sudahAbsen) {
+                //             \Filament\Notifications\Notification::make()
+                //                 ->title('Perhatian!')
+                //                 ->warning()
+                //                 ->body($siswa->nama_siswa . ' sudah absen hari ini.')
+                //                 ->send();
+                //             return;
+                //         }
+
+                //         \App\Models\Absensi::create([
+                //             'siswa_id' => $siswa->id,
+                //             'jadwal_id' => $record->id,
+                //             'diabsenkan_oleh_user_id' => auth()->id(),
+                //             'status' => 'hadir',
+                //             'waktu_scan' => now(),
+                //         ]);
+
+                //         \Filament\Notifications\Notification::make()
+                //             ->title('Berhasil!')
+                //             ->success()
+                //             ->body('Absensi ' . $siswa->nama_siswa . ' berhasil disimpan.')
+                //             ->send();
+                //     })
+                //     ->modalWidth('sm'), // optional, sesuaikan ukuran modal
+
 
             ])
             ->bulkActions([
