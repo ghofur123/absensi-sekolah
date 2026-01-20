@@ -251,15 +251,36 @@ class JadwalResource extends Resource
                     ])
                     ->action(function ($record, $data) {
                         $userId = Auth::id();
-                        $now = Carbon::now();
+                        $now = now();
 
-                        // Hapus absensi hari ini
-                        Absensi::where('jadwal_id', $record->id)
-                            ->whereDate('created_at', today())
-                            ->delete();
-
-                        // Simpan absensi baru
                         foreach ($data['daftar_absensi'] ?? [] as $item) {
+
+                            // Ambil absensi hari ini per siswa
+                            $absensiHariIni = Absensi::where('jadwal_id', $record->id)
+                                ->where('siswa_id', $item['siswa_id'])
+                                ->whereDate('created_at', today())
+                                ->first();
+
+                            // Jika belum ada absensi → langsung buat
+                            if (! $absensiHariIni) {
+                                Absensi::create([
+                                    'siswa_id' => $item['siswa_id'],
+                                    'jadwal_id' => $record->id,
+                                    'diabsenkan_oleh_user_id' => $userId,
+                                    'status' => $item['status'],
+                                    'waktu_scan' => $now,
+                                ]);
+                                continue;
+                            }
+
+                            // Jika status sama → tidak perlu apa-apa
+                            if ($absensiHariIni->status === $item['status']) {
+                                continue;
+                            }
+
+                            // Jika status berbeda → hapus & buat ulang
+                            $absensiHariIni->delete();
+
                             Absensi::create([
                                 'siswa_id' => $item['siswa_id'],
                                 'jadwal_id' => $record->id,
