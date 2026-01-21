@@ -13,13 +13,19 @@ class LembagaSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 1; $i <= 10; $i++) {
-            DB::table('lembagas')->insert([
-                'nama_lembaga' => "Lembaga $i",
-                'alamat' => "Alamat $i",
+        DB::table('lembagas')->insert([
+            [
+                'nama_lembaga' => 'MTS NURUL MANNAN',
+                'alamat' => 'Jl. Pasar Jum at NO 1',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
-        }
+            ],
+            [
+                'nama_lembaga' => 'SMK NURUL MANNAN',
+                'alamat' => 'Jl. Pasar Jum at NO 2',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
     }
 }

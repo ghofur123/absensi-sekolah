@@ -70,31 +70,51 @@ class AbsensiResource extends Resource
                     ->label('Status Masuk')
                     ->getStateUsing(function ($record) {
 
-                        // 🔴 HANYA UNTUK HADIR
+                        // 🔴 hanya hadir
                         if ($record->status !== 'hadir') {
                             return null;
                         }
 
-                        // belum scan → jangan tampilkan
+                        // belum scan
                         if (! $record->waktu_scan) {
                             return null;
                         }
 
-                        // jadwal tidak valid → jangan tampilkan
-                        if (! $record->jadwal || ! $record->jadwal->jam_mulai) {
+                        // jadwal tidak valid
+                        if (! $record->jadwal || ! $record->jadwal->jam_mulai || ! $record->jadwal->jam_selesai) {
                             return null;
                         }
 
-                        $jamScan  = Carbon::parse($record->waktu_scan);
-                        $jamMulai = Carbon::parse($record->jadwal->jam_mulai);
+                        $scan    = Carbon::parse($record->waktu_scan);
+                        $mulai   = Carbon::parse($record->jadwal->jam_mulai);
+                        $selesai = Carbon::parse($record->jadwal->jam_selesai);
 
-                        return $jamScan->gt($jamMulai)
-                            ? 'Terlambat'
-                            : 'Tepat Waktu';
+                        $batasPas   = $mulai->copy()->addMinutes(15);   // toleransi tepat waktu
+                        $batasAwal  = $mulai->copy()->subMinutes(30);   // terlalu awal
+
+                        if ($scan->lt($batasAwal)) {
+                            return 'Di Luar Jadwal';
+                        }
+
+                        if ($scan->lt($mulai)) {
+                            return 'Belum Waktu';
+                        }
+
+                        if ($scan->lte($batasPas)) {
+                            return 'Tepat Waktu';
+                        }
+
+                        if ($scan->lte($selesai)) {
+                            return 'Terlambat';
+                        }
+
+                        return 'Di Luar Jadwal';
                     })
                     ->colors([
                         'success' => 'Tepat Waktu',
                         'warning' => 'Terlambat',
+                        'info'    => 'Belum Waktu',
+                        'danger'  => 'Di Luar Jadwal',
                     ])
                     ->placeholder('-'),
 

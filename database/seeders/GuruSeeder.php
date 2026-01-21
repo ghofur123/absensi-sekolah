@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Faker\Factory as Faker;
 
 class GuruSeeder extends Seeder
 {
@@ -13,17 +14,23 @@ class GuruSeeder extends Seeder
      */
     public function run(): void
     {
+        $faker = Faker::create('id_ID');
+
         $lembagaIds = DB::table('lembagas')->pluck('id');
 
-        foreach ($lembagaIds as $index => $lembagaId) {
-            DB::table('gurus')->insert([
-                'lembaga_id' => $lembagaId,
-                'user_id' => null,
-                'nama' => "Guru " . ($index + 1),
-                'nik' => '1970' . str_pad($index + 1, 6, '0', STR_PAD_LEFT),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        foreach ($lembagaIds as $lembagaId) {
+
+            // misal: 5 guru per lembaga
+            for ($i = 1; $i <= 5; $i++) {
+                DB::table('gurus')->insert([
+                    'lembaga_id' => $lembagaId,
+                    'user_id'    => null,
+                    'nama'       => $faker->name,
+                    'nik'        => $faker->unique()->numerify('1970######'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }

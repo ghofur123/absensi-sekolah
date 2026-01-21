@@ -13,16 +13,22 @@ class KelasSeeder extends Seeder
      */
     public function run(): void
     {
+        // kalau sering migrate:fresh
+        // DB::table('kelas')->delete();
+
         $lembagaIds = DB::table('lembagas')->pluck('id');
 
-        foreach ($lembagaIds as $index => $lembagaId) {
-            DB::table('kelas')->insert([
-                'lembaga_id' => $lembagaId,
-                'nama_kelas' => 'Kelas ' . ($index + 1),
-                'tingkat' => rand(1, 12),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        foreach ($lembagaIds as $lembagaId) {
+
+            for ($i = 1; $i <= 3; $i++) {
+                DB::table('kelas')->insert([
+                    'lembaga_id' => $lembagaId,
+                    'nama_kelas' => 'Kelas ' . $i,
+                    'tingkat' => $i, // bisa 1,2,3 (lebih masuk akal)
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }

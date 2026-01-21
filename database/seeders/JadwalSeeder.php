@@ -13,36 +13,34 @@ class JadwalSeeder extends Seeder
      */
     public function run(): void
     {
+        // aman jika seed ulang
+        // DB::table('jadwals')->truncate();
+
         $kelas = DB::table('kelas')->get();
-        $guru  = DB::table('gurus')->pluck('id');
-        $mapel = DB::table('mata_pelajarans')->pluck('id');
 
-        $hari = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
-        $jam  = [
-            ['07:00', '08:00'],
-            ['08:00', '09:00'],
-            ['09:00', '10:00'],
-            ['10:00', '11:00'],
-        ];
+        $hariList = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
 
-        $i = 0;
+        // ambil 1 guru & mapel (jika wajib)
+        $guruId  = DB::table('gurus')->value('id');
+        $mapelId = DB::table('mata_pelajarans')->value('id');
 
         foreach ($kelas as $kls) {
-            if ($i >= 10) break;
+            foreach ($hariList as $hari) {
+                DB::table('jadwals')->insert([
+                    'lembaga_id' => $kls->lembaga_id,
+                    'kelas_id'   => $kls->id,
 
-            DB::table('jadwals')->insert([
-                'lembaga_id' => $kls->lembaga_id,
-                'kelas_id' => $kls->id,
-                'guru_id' => $guru[$i % $guru->count()],
-                'mata_pelajaran_id' => $mapel[$i % $mapel->count()],
-                'hari' => $hari[$i % count($hari)],
-                'jam_mulai' => $jam[$i % count($jam)][0],
-                'jam_selesai' => $jam[$i % count($jam)][1],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+                    'guru_id' => $guruId,
+                    'mata_pelajaran_id' => $mapelId,
 
-            $i++;
+                    'hari' => $hari,
+                    'jam_mulai' => '07:00:00',
+                    'jam_selesai' => '08:00:00',
+
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }

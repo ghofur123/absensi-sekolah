@@ -15,16 +15,7 @@ class MataPelajaranSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            'Matematika',
-            'Bahasa Indonesia',
-            'Bahasa Inggris',
-            'IPA',
-            'IPS',
-            'PAI',
-            'PKn',
-            'PJOK',
-            'SBK',
-            'Informatika',
+            'Dhuha',
         ];
 
         $lembagas = Lembaga::all();

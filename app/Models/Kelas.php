@@ -16,4 +16,8 @@ class Kelas extends Model
     {
         return $this->belongsTo(Lembaga::class);
     }
+    public function siswas()
+    {
+        return $this->hasMany(Siswa::class, 'kelas_id');
+    }
 }

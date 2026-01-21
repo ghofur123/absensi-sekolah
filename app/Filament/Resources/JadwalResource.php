@@ -296,57 +296,12 @@ class JadwalResource extends Resource
                             ->body('Absensi berhasil disimpan.')
                             ->send();
                     }),
-
-                // Tables\Actions\Action::make('scanQR')
-                //     ->label('Scan QR')
-                //     ->icon('heroicon-o-qr-code')
-                //     ->color('primary')
-                //     ->action(function ($record, $data, $get) {
-                //         // $data['qr_code'] hanya kalau pakai form, tapi di BarcodeScannerAction callback kita dapat $value
-                //         // Jika pakai BarcodeScannerAction langsung, callback ada di ->afterScan()
-                //     })
-                //     ->afterScan(function ($record, $value) {
-                //         // $value = QR code yang discan
-                //         $siswa = \App\Models\Siswa::where('qr_code', $value)->first();
-
-                //         if (!$siswa) {
-                //             \Filament\Notifications\Notification::make()
-                //                 ->title('Gagal!')
-                //                 ->danger()
-                //                 ->body('QR Code tidak valid: ' . $value)
-                //                 ->send();
-                //             return;
-                //         }
-
-                //         $sudahAbsen = \App\Models\Absensi::where('siswa_id', $siswa->id)
-                //             ->where('jadwal_id', $record->id)
-                //             ->whereDate('created_at', today())
-                //             ->exists();
-
-                //         if ($sudahAbsen) {
-                //             \Filament\Notifications\Notification::make()
-                //                 ->title('Perhatian!')
-                //                 ->warning()
-                //                 ->body($siswa->nama_siswa . ' sudah absen hari ini.')
-                //                 ->send();
-                //             return;
-                //         }
-
-                //         \App\Models\Absensi::create([
-                //             'siswa_id' => $siswa->id,
-                //             'jadwal_id' => $record->id,
-                //             'diabsenkan_oleh_user_id' => auth()->id(),
-                //             'status' => 'hadir',
-                //             'waktu_scan' => now(),
-                //         ]);
-
-                //         \Filament\Notifications\Notification::make()
-                //             ->title('Berhasil!')
-                //             ->success()
-                //             ->body('Absensi ' . $siswa->nama_siswa . ' berhasil disimpan.')
-                //             ->send();
-                //     })
-                //     ->modalWidth('sm'), // optional, sesuaikan ukuran modal
+                Action::make('scan_qr')
+                    ->label('Scan QR')
+                    ->icon('heroicon-o-qr-code')
+                    ->color('success')
+                    ->url(fn($record) => route('scan.jadwal', $record))
+                    ->openUrlInNewTab(),
 
 
             ])

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\KartuSiswaController;
+use App\Http\Controllers\ScanAbsensiController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Response;
@@ -53,4 +55,18 @@ Route::get('/download-template/siswa', function () {
     abort_unless(file_exists($path), 404);
 
     return Response::download($path, 'siswa.xlsx');
+});
+Route::get('/kelas/{kelas}/kartu-siswa-pdf', [KartuSiswaController::class, 'pdf'])
+    ->name('kelas.kartu.pdf');
+
+Route::middleware('auth')->group(function () {
+    Route::get(
+        '/scan/jadwal/{jadwal}',
+        [ScanAbsensiController::class, 'index']
+    )->name('scan.jadwal');
+
+    Route::post(
+        '/scan/jadwal/{jadwal}',
+        [ScanAbsensiController::class, 'store']
+    )->name('scan.jadwal.store');
 });

@@ -19,46 +19,46 @@ class ListAbsensis extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            BarcodeScannerHeaderAction::make()
-                ->label('Scan QR Siswa')
-                ->afterScan(function (string $value) {
+            // BarcodeScannerHeaderAction::make()
+            //     ->label('Scan QR Siswa')
+            //     ->afterScan(function (string $value) {
 
-                    $siswa = Siswa::find($value);
+            //         $siswa = Siswa::find($value);
 
-                    if (! $siswa) {
-                        Notification::make()
-                            ->title('QR tidak valid')
-                            ->danger()
-                            ->send();
-                        return;
-                    }
+            //         if (! $siswa) {
+            //             Notification::make()
+            //                 ->title('QR tidak valid')
+            //                 ->danger()
+            //                 ->send();
+            //             return;
+            //         }
 
-                    $sudahAbsen = Absensi::where('siswa_id', $siswa->id)
-                        ->whereDate('created_at', today())
-                        ->exists();
+            //         $sudahAbsen = Absensi::where('siswa_id', $siswa->id)
+            //             ->whereDate('created_at', today())
+            //             ->exists();
 
-                    if ($sudahAbsen) {
-                        Notification::make()
-                            ->title('Sudah Absen')
-                            ->warning()
-                            ->body($siswa->nama_siswa . ' sudah absen hari ini')
-                            ->send();
-                        return;
-                    }
+            //         if ($sudahAbsen) {
+            //             Notification::make()
+            //                 ->title('Sudah Absen')
+            //                 ->warning()
+            //                 ->body($siswa->nama_siswa . ' sudah absen hari ini')
+            //                 ->send();
+            //             return;
+            //         }
 
-                    Absensi::create([
-                        'siswa_id' => $siswa->id,
-                        'diabsenkan_oleh_user_id' => auth()->id(),
-                        'status' => 'hadir',
-                        'waktu_scan' => now(),
-                    ]);
+            //         Absensi::create([
+            //             'siswa_id' => $siswa->id,
+            //             'diabsenkan_oleh_user_id' => auth()->id(),
+            //             'status' => 'hadir',
+            //             'waktu_scan' => now(),
+            //         ]);
 
-                    Notification::make()
-                        ->title('Berhasil')
-                        ->success()
-                        ->body('Absensi ' . $siswa->nama_siswa . ' berhasil disimpan')
-                        ->send();
-                })
+            //         Notification::make()
+            //             ->title('Berhasil')
+            //             ->success()
+            //             ->body('Absensi ' . $siswa->nama_siswa . ' berhasil disimpan')
+            //             ->send();
+            //     })
 
 
         ];
