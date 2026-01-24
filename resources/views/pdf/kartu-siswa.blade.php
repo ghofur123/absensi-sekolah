@@ -1,266 +1,249 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
-        * {
+        @page { margin: 15px; }
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            background-color: #f5f5f5;
         }
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11px;
-            padding: 20px;
-        }
-/*  */
-        .page-title {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #2c3e50;
-            font-size: 18px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        /* Container Tabel Utama */
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .card-container {
-            margin-bottom: 15px;
+        .card-td {
+            width: 33.33%;
+            padding: 8px;
+            vertical-align: top;
         }
 
         .student-card {
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            height: 380px;
+            width: 100%;
+            height: 460px; /* Tinggi proporsional */
+            background-color: #ffffff;
+            border-radius: 20px;
             overflow: hidden;
-            background: #f8f9ff;
-            page-break-inside: avoid;
+            position: relative;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-        /* Variasi warna */
-        .student-card.card-purple {
-            border-color: #667eea;
-            background: #f8f9ff;
+        /* Wave Atas menggunakan SVG agar halus di dompdf */
+        .header-wave {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-color: #209378;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ffffff' fill-opacity='0.15' d='M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,144C672,139,768,181,864,181.3C960,181,1056,139,1152,122.7C1248,107,1344,117,1392,122.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+            background-size: cover;
+            z-index: 1;
         }
 
-        .student-card.card-pink {
-            border-color: #f5576c;
-            background: #fff8f9;
-        }
-
-        .student-card.card-blue {
-            border-color: #4facfe;
-            background: #f0fbff;
-        }
-
-        .card-header-custom {
-            background: #667eea;
-            padding: 10px 8px;
-            text-align: center;
-            border-bottom: 3px solid #ffd700;
-        }
-
-        .card-header-custom.header-pink {
-            background: #f5576c;
-        }
-
-        .card-header-custom.header-blue {
-            background: #4facfe;
-        }
-
-        .lembaga-name {
-            font-weight: bold;
-            font-size: 11px;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            line-height: 1.4;
-        }
-
-        .card-body-custom {
-            padding: 12px 10px;
-            text-align: center;
-        }
-
-        .photo-section {
-            margin-bottom: 8px;
-        }
-
-        .photo-placeholder {
-            width: 70px;
+        /* Wave Bawah */
+        .footer-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
             height: 70px;
-            margin: 0 auto;
-            border-radius: 50%;
-            background: white;
-            border: 3px solid #ffd700;
-            display: block;
+            background-color: #209378;
+            border-radius: 80% 80% 0 0 / 20% 20% 0 0;
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 5;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .header-info {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .school-logo {
+            width: 45px;
+            margin-bottom: 5px;
+        }
+
+        .school-name {
+            font-size: 8px;
+            font-weight: normal;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .school-sub {
+            font-size: 10px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        /* Card Title Section */
+        .title-section {
+            margin-top: 15px;
+            text-align: left;
+            padding-left: 10px;
+            border-left: 4px solid #209378;
+        }
+
+        .title-main {
+            font-size: 18px;
+            font-weight: 800;
+            color: #209378;
+            line-height: 1;
+        }
+
+        .title-small {
+            font-size: 10px;
+            color: #333;
         }
 
         .student-name {
+            font-size: 15px;
             font-weight: bold;
-            font-size: 13px;
-            margin: 8px 0 6px 0;
-            color: #2c3e50;
-            min-height: 28px;
-            line-height: 14px;
+            color: #000;
+            margin: 15px 0;
+            text-transform: uppercase;
+            height: 35px;
         }
 
-        .info-section {
-            margin: 8px 0;
+        /* QR Section */
+        .qr-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            background: white;
+            padding: 10px;
         }
 
-        .info-item {
-            background: #e8eaf6;
-            padding: 5px 8px;
-            margin-bottom: 4px;
-            border-radius: 4px;
-            font-size: 10px;
+        .qr-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #209378;
+        }
+        .c-tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+        .c-tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+        .c-bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+        .c-br { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+        .scan-hint {
+            font-size: 7px;
+            color: #666;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Info Grid */
+        .info-table {
+            width: 100%;
+            font-size: 8px;
             text-align: left;
-            border-left: 3px solid #667eea;
-        }
-
-        .info-item.info-pink {
-            background: #ffe4e8;
-            border-left-color: #f5576c;
-        }
-
-        .info-item.info-blue {
-            background: #e0f7ff;
-            border-left-color: #4facfe;
+            margin-top: 10px;
         }
 
         .info-label {
+            color: #209378;
             font-weight: bold;
-            display: inline-block;
-            width: 45px;
-        }
-
-        .qr-section {
-            margin-top: 10px;
-            text-align: center;
-        }
-
-        .qr-wrapper {
-            padding: 8px;
-            background: white;
-            display: inline-block;
-            border-radius: 6px;
-            border: 2px solid #ddd;
-        }
-
-        .qr-wrapper img {
             display: block;
-            margin: 0 auto;
         }
 
-        /* Grid manual untuk 3 kolom */
-        .row-custom {
+        .info-val {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .footer-text {
+            position: absolute;
+            bottom: 8px;
             width: 100%;
-            margin-bottom: 15px;
-        }
-
-        .row-custom::after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-
-        .col-custom {
-            float: left;
-            width: 32%;
-            margin-right: 2%;
-            margin-bottom: 15px;
-        }
-
-        .col-custom:nth-child(3n) {
-            margin-right: 0;
-        }
-
-        @media print {
-            body {
-                padding: 10px;
-            }
-
-            .student-card {
-                page-break-inside: avoid;
-            }
+            text-align: center;
+            font-size: 7px;
+            color: white;
+            z-index: 10;
         }
     </style>
 </head>
-
 <body>
 
-    <div class="page-title">
-        KARTU SISWA – {{ strtoupper($kelas->lembaga->nama_lembaga) }}
-    </div>
+    <table class="main-table">
+        @foreach ($siswas->chunk(3) as $chunk)
+        <tr>
+            @foreach ($chunk as $siswa)
+            <td class="card-td">
+                <div class="student-card">
+                    <div class="header-wave"></div>
+                    
+                    <div class="content">
+                        <div class="header-info">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Tut_Wuri_Handayani.svg/1200px-Tut_Wuri_Handayani.svg.png" class="school-logo">
+                            <div class="school-name">YAYASAN PENDIDIKAN ISLAM NURUL MANNAN</div>
+                            <div class="school-sub">{{ $kelas->lembaga->nama_lembaga }}</div>
+                        </div>
 
-    <div class="row-custom">
-        @foreach ($siswas as $index => $siswa)
-        @php
-        $cardClass = '';
-        $headerClass = '';
-        $infoClass = '';
+                        <div class="title-section">
+                            <span class="title-main">KARTU</span><br>
+                            <span class="title-small">Pelajar Digital</span>
+                        </div>
 
-        $remainder = $index % 3;
-        if ($remainder == 0) {
-        $cardClass = 'card-purple';
-        $headerClass = '';
-        $infoClass = '';
-        } elseif ($remainder == 1) {
-        $cardClass = 'card-pink';
-        $headerClass = 'header-pink';
-        $infoClass = 'info-pink';
-        } else {
-        $cardClass = 'card-blue';
-        $headerClass = 'header-blue';
-        $infoClass = 'info-blue';
-        }
-        @endphp
+                        <div class="student-name">{{ $siswa->nama_siswa }}</div>
 
-        <div class="col-custom">
-            <div class="student-card {{ $cardClass }}">
-                <div class="card-header-custom {{ $headerClass }}">
-                    <div class="lembaga-name">
-                        {{ $kelas->lembaga->nama_lembaga }}
+                        <div class="qr-container">
+                            <div class="qr-corner c-tl"></div>
+                            <div class="qr-corner c-tr"></div>
+                            <div class="qr-corner c-bl"></div>
+                            <div class="qr-corner c-br"></div>
+                            <img src="data:image/png;base64,{{ $qrs[$siswa->id] }}" width="100" height="100">
+                        </div>
+                        <div class="scan-hint">Scan QR untuk absensi siswa</div>
+
+                        <table class="info-table">
+                            <tr>
+                                <td width="55%">
+                                    <span class="info-label">Alamat:</span>
+                                    <div class="info-val">Jl. Pasar Jumat No. 1, Jember</div>
+                                </td>
+                                <td width="45%">
+                                    <span class="info-label">NISN:</span>
+                                    <div class="info-val">{{ $siswa->nisn }}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span class="info-label">Kelas:</span>
+                                    <div class="info-val">{{ $kelas->nama_kelas }}</div>
+                                </td>
+                                <td>
+                                    <span class="info-label">Kontak:</span>
+                                    <div class="info-val">+62 852 0498</div>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
+
+                    <div class="footer-wave"></div>
+                    <div class="footer-text">Kartu ini milik {{ $kelas->lembaga->nama_lembaga }}</div>
                 </div>
-
-                <div class="card-body-custom">
-                    <div class="photo-section">
-                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="
-                            class="photo-placeholder" alt="Photo">
-                    </div>
-
-                    <div class="student-name">{{ $siswa->nama_siswa }}</div>
-
-                    <div class="info-section">
-                        <div class="info-item {{ $infoClass }}">
-                            <span class="info-label">NISN</span>: {{ $siswa->nisn }}
-                        </div>
-
-                        <div class="info-item {{ $infoClass }}">
-                            <span class="info-label">Kelas</span>: {{ $kelas->nama_kelas }}
-                        </div>
-                    </div>
-
-                    <div class="qr-section">
-                        <div class="qr-wrapper">
-                            <img src="data:image/png;base64,{{ $qrs[$siswa->id] }}" width="110" height="110" alt="QR Code">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @if (($index + 1) % 3 == 0)
-    </div>
-    <div class="row-custom">
-        @endif
+            </td>
+            @endforeach
+            @for ($i = 0; $i < (3 - count($chunk)); $i++)
+                <td class="card-td"></td>
+            @endfor
+        </tr>
         @endforeach
-    </div>
+    </table>
 
 </body>
-
 </html>
