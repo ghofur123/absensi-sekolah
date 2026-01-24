@@ -15,7 +15,7 @@
             font-size: 11px;
             padding: 20px;
         }
-
+/*  */
         .page-title {
             text-align: center;
             margin-bottom: 25px;
