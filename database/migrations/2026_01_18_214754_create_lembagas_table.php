@@ -15,6 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('nama_lembaga');
             $table->text('alamat')->nullable();
+            $table->decimal('latitude', 10, 8)->nullable();
+            $table->decimal('longitude', 11, 8)->nullable();
+            $table->integer('radius_meter')->default(100);
             $table->timestamps();
         });
     }

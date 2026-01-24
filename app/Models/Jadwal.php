@@ -8,22 +8,18 @@ class Jadwal extends Model
 {
     protected $fillable = [
         'lembaga_id',
-        'kelas_id',
         'guru_id',
         'mata_pelajaran_id',
         'hari',
         'jam_mulai',
         'jam_selesai',
     ];
-
+    protected $casts = [
+        'hari' => 'array',
+    ];
     public function lembaga()
     {
         return $this->belongsTo(Lembaga::class);
-    }
-
-    public function kelas()
-    {
-        return $this->belongsTo(Kelas::class);
     }
 
     public function guru()
@@ -38,5 +34,15 @@ class Jadwal extends Model
     public function absensis()
     {
         return $this->hasMany(Absensi::class);
+    }
+    // pivot
+    public function kelases()
+    {
+        return $this->belongsToMany(Kelas::class, 'jadwal_kelas');
+    }
+
+    public function jadwalKelas()
+    {
+        return $this->hasMany(JadwalKelas::class);
     }
 }

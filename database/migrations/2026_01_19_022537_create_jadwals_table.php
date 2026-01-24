@@ -17,9 +17,9 @@ return new class extends Migration
                 ->constrained('lembagas')
                 ->cascadeOnDelete();
 
-            $table->foreignId('kelas_id')
-                ->constrained('kelas')
-                ->cascadeOnDelete();
+            // $table->foreignId('kelas_id')
+            //     ->constrained('kelas')
+            //     ->cascadeOnDelete();
 
             $table->foreignId('guru_id')
                 ->constrained('gurus')
@@ -29,14 +29,7 @@ return new class extends Migration
                 ->constrained('mata_pelajarans')
                 ->cascadeOnDelete();
 
-            $table->enum('hari', [
-                'senin',
-                'selasa',
-                'rabu',
-                'kamis',
-                'jumat',
-                'sabtu',
-            ]);
+            $table->json('hari');
 
             $table->time('jam_mulai');
             $table->time('jam_selesai');

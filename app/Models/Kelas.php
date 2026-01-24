@@ -20,4 +20,9 @@ class Kelas extends Model
     {
         return $this->hasMany(Siswa::class, 'kelas_id');
     }
+    // pivot
+    public function jadwals()
+    {
+        return $this->belongsToMany(Jadwal::class, 'jadwal_kelas');
+    }
 }

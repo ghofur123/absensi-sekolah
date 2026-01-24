@@ -26,10 +26,10 @@ class AbsensiResource extends Resource
     protected static ?string $model = Absensi::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
-    protected static ?string $navigationLabel = 'Absensi';
-    protected static ?string $pluralModelLabel = 'Data Absensi';
-    protected static ?string $modelLabel = 'Absensi';
-    protected static ?string $navigationGroup = 'Akademik';
+    protected static ?string $navigationLabel = 'Absensi Siswa';
+    protected static ?string $pluralModelLabel = 'Absensi Siswa';
+    protected static ?string $modelLabel = 'Absensi Siswa';
+    protected static ?string $navigationGroup = 'Manajemen Absensi Siswa';
 
     public static function form(Form $form): Form
     {

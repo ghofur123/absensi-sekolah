@@ -24,7 +24,7 @@ class SiswaResource extends Resource
 
     protected static ?string $navigationLabel = 'Siswa';
     protected static ?string $navigationIcon = 'heroicon-o-user';
-    protected static ?string $navigationGroup = 'Akademik';
+    protected static ?string $navigationGroup = 'Master Data';
 
     public static function form(Form $form): Form
     {
@@ -35,12 +35,21 @@ class SiswaResource extends Resource
                         Select::make('lembaga_id')
                             ->label('Lembaga')
                             ->relationship('lembaga', 'nama_lembaga')
-                            ->required(),
+                            ->required()
+                            ->reactive(), // penting agar select lain bisa merespon perubahan
 
                         Select::make('kelas_id')
                             ->label('Kelas')
-                            ->relationship('kelas', 'nama_kelas')
-                            ->required(),
+                            ->required()
+                            ->options(function ($get) {
+                                $lembagaId = $get('lembaga_id');
+                                if (!$lembagaId) {
+                                    return []; // kosong kalau lembaga belum dipilih
+                                }
+                                return \App\Models\Kelas::where('lembaga_id', $lembagaId)
+                                    ->pluck('nama_kelas', 'id');
+                            })
+                            ->disabled(fn($get) => !$get('lembaga_id')), // nonaktif sampai lembaga dipilih
 
                         TextInput::make('nisn')
                             ->label('NISN')

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AbsensiGuruQr;
+use App\Http\Controllers\KartuQrAbsensiGuruController;
 use App\Http\Controllers\KartuSiswaController;
 use App\Http\Controllers\ScanAbsensiController;
 use App\Http\Controllers\WebhookController;
@@ -58,15 +60,28 @@ Route::get('/download-template/siswa', function () {
 });
 Route::get('/kelas/{kelas}/kartu-siswa-pdf', [KartuSiswaController::class, 'pdf'])
     ->name('kelas.kartu.pdf');
+Route::get(
+    '/qr/absensi-guru/jadwal/{jadwal}',
+    [KartuQrAbsensiGuruController::class, 'pdf']
+)->name('qr.absen.guru.pdf');
 
 Route::middleware('auth')->group(function () {
+    // scan siswa
     Route::get(
         '/scan/jadwal/{jadwal}',
         [ScanAbsensiController::class, 'index']
     )->name('scan.jadwal');
-
     Route::post(
         '/scan/jadwal/{jadwal}',
         [ScanAbsensiController::class, 'store']
     )->name('scan.jadwal.store');
+    Route::get('/scan-auto', [ScanAbsensiController::class, 'scanAuto'])
+        ->name('scan.auto'); // nama route
+
+    // scan guru
+    Route::get('/scan-guru', [AbsensiGuruQr::class, 'index'])
+        ->name('scan.guru');
+
+    Route::post('/scan/guru', [AbsensiGuruQr::class, 'scan'])
+        ->name('scan.guru.store');
 });
