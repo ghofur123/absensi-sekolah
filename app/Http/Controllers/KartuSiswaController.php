@@ -12,33 +12,40 @@ class KartuSiswaController extends Controller
 {
     public function pdf(Kelas $kelas)
     {
-        // ambil relasi
+        // 1. Ambil relasi dengan eager loading
         $kelas->load('lembaga', 'siswas');
 
+        // 2. Filter siswa aktif
         $siswas = $kelas->siswas->where('status', 'aktif');
 
-        // generate QR per siswa
+        // 3. Generate QR per siswa
         $qrs = [];
+        $writer = new PngWriter();
 
         foreach ($siswas as $siswa) {
             $qrCode = new QrCode(
                 data: $siswa->id,
-                size: 120,
+                size: 150, // Sedikit lebih besar agar hasil print tajam
                 margin: 0
             );
 
-            $writer = new PngWriter();
             $result = $writer->write($qrCode);
-
             $qrs[$siswa->id] = base64_encode($result->getString());
         }
 
-        return Pdf::loadView('pdf.kartu-siswa', [
+        // 4. Inisialisasi PDF
+        $pdf = Pdf::loadView('pdf.kartu-siswa', [
             'kelas' => $kelas,
             'siswas' => $siswas,
             'qrs' => $qrs,
-        ])
-            ->setPaper('A4', 'portrait')
+        ]);
+
+        // 5. Konfigurasi penting: Aktifkan Remote Enabled untuk gambar/logo dari URL
+        $pdf->getDomPDF()->set_option("isRemoteEnabled", true);
+        $pdf->getDomPDF()->set_option("isHtml5ParserEnabled", true);
+
+        // 6. Set ukuran kertas dan stream
+        return $pdf->setPaper('A4', 'portrait')
             ->stream('kartu-siswa-' . $kelas->nama_kelas . '.pdf');
     }
 }

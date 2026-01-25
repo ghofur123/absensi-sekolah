@@ -29,7 +29,7 @@ class AbsensiResource extends Resource
     protected static ?string $navigationLabel = 'Absensi Siswa';
     protected static ?string $pluralModelLabel = 'Absensi Siswa';
     protected static ?string $modelLabel = 'Absensi Siswa';
-    protected static ?string $navigationGroup = 'Manajemen Absensi Siswa';
+    protected static ?string $navigationGroup = 'Absensi & Kehadiran';
 
     public static function form(Form $form): Form
     {

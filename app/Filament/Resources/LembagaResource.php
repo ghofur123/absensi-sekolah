@@ -7,6 +7,7 @@ use App\Filament\Resources\LembagaResource\RelationManagers;
 use App\Models\Lembaga;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
@@ -54,6 +55,14 @@ class LembagaResource extends Resource
 
                         ViewField::make('ambil_lokasi')
                             ->view('filament.forms.ambil-lokasi'),
+                        SpatieMediaLibraryFileUpload::make('bg_kartu_siswa')
+                            ->label('Background Kartu Siswa - Gambar Max 4 MB')
+                            ->collection('bg_kartu_siswa')
+                            ->image()
+                            ->acceptedFileTypes(['image/*'])
+                            ->maxSize(4096)
+                            ->columnSpanFull()
+                            ->required(),
                     ])
                     ->columns(3),
             ]);
