@@ -22,7 +22,7 @@ class AbsensiGuruResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
     protected static ?string $navigationLabel = 'Absensi Guru';
-    protected static ?string $navigationGroup = 'Manajemen Absensi Guru';
+    protected static ?string $navigationGroup = 'Absensi & Kehadiran';
 
     public static function form(Form $form): Form
     {

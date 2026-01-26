@@ -205,7 +205,7 @@ class WaSendResource extends Resource
                         $now    = now();
 
                         $whatsappSetting = \App\Models\LembagaSetting::first();
-
+                        $token = "r3UpUKoSLk17fkytNyMB";
                         foreach ($data['daftar_absensi'] as $kelas) {
                             foreach ($kelas['siswa'] as $item) {
 
@@ -226,14 +226,16 @@ class WaSendResource extends Resource
                                 }
 
                                 // ===== KIRIM WHATSAPP =====
-                                // ===== KIRIM WHATSAPP =====
                                 $noWa = preg_replace('/[^0-9]/', '', $item['no_wa']);
 
-                                // Validasi dasar sebelum kirim
+                                if (str_starts_with($noWa, '0')) {
+                                    $noWa = substr($noWa, 1);
+                                }
+
                                 if (
                                     $item['kirim_wa'] === true &&
                                     ! empty($noWa) &&
-                                    strlen($noWa) >= 10 &&
+                                    strlen($noWa) >= 9 &&
                                     $whatsappSetting &&
                                     ! empty($whatsappSetting->token)
                                 ) {
@@ -252,12 +254,12 @@ class WaSendResource extends Resource
                                         CURLOPT_RETURNTRANSFER => true,
                                         CURLOPT_POST => true,
                                         CURLOPT_POSTFIELDS => [
-                                            'target' => $noWa,
+                                            'target' => "082141031276",
                                             'message' => $pesan,
                                             'countryCode' => '62',
                                         ],
                                         CURLOPT_HTTPHEADER => [
-                                            'Authorization: ' . $whatsappSetting->token, // ❗ jangan hardcode
+                                            'Authorization: ' . $token,
                                         ],
                                     ]);
 
@@ -266,15 +268,14 @@ class WaSendResource extends Resource
 
                                     curl_close($curl);
 
-                                    // ===== LOG HASIL =====
                                     if ($error) {
-                                        logger()->error('Fonnte CURL Error', [
+                                        logger()->error('Fonnte Error', [
                                             'siswa_id' => $item['siswa_id'],
                                             'no_wa' => $noWa,
                                             'error' => $error,
                                         ]);
                                     } else {
-                                        logger()->info('Fonnte Response', [
+                                        logger()->info('Fonnte Success', [
                                             'siswa_id' => $item['siswa_id'],
                                             'no_wa' => $noWa,
                                             'response' => $response,
