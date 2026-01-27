@@ -176,7 +176,9 @@ class AbsensiGuruQr extends Controller
             'status_masuk' => $statusMasuk,
             'keterangan'   => $keterangan,
         ]);
-
+        WhatsappFilamentController::kirimRekapAbsensiGuruGroup(
+            $jadwal->id
+        );
         return response()->json([
             'status'       => 'success',
             'nama'         => $guru->nama,
@@ -184,6 +186,7 @@ class AbsensiGuruQr extends Controller
             'keterangan'   => $keterangan,
             'jarak'        => $jarak,
         ]);
+        // end kirim pesan ke group absensi guru
     }
 
     // =========================

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\WaSendResource\Pages;
 use App\Filament\Resources\WaSendResource\RelationManagers;
+use App\Http\Controllers\WhatsappFilamentController;
 use App\Models\Jadwal;
 use App\Models\JadwalTanggalStatusWa;
 use App\Models\LembagaSetting;
@@ -12,6 +13,7 @@ use Filament\Forms;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
@@ -65,7 +67,14 @@ class WaSendResource extends Resource
                     ->label('Guru')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
-
+                TextColumn::make('jadwalTanggalStatusWa.tanggal')
+                    ->label('Tanggal Kirim')
+                    ->date('d-m-Y')
+                    ->placeholder('-'),
+                TextColumn::make('jadwalTanggalStatusWa.waktu_kirim')
+                    ->label('Dikirim')
+                    ->since()
+                    ->placeholder('Belum dikirim'),
                 TextColumn::make('lembaga.nama_lembaga')
                     ->label('Lembaga'),
             ])
@@ -168,6 +177,7 @@ class WaSendResource extends Resource
                                                 TextInput::make('nama_siswa')
                                                     ->label(false)
                                                     ->disabled()
+                                                    ->dehydrated(true)
                                                     ->prefix(fn($get) => $get('nomor') . '.')
                                                     ->columnSpan(2),
 
@@ -205,11 +215,13 @@ class WaSendResource extends Resource
                         $now    = now();
 
                         $whatsappSetting = \App\Models\LembagaSetting::first();
-                        $token = "r3UpUKoSLk17fkytNyMB";
+
                         foreach ($data['daftar_absensi'] as $kelas) {
                             foreach ($kelas['siswa'] as $item) {
 
+                                // =========================
                                 // SIMPAN / UPDATE ABSENSI
+                                // =========================
                                 $absensi = \App\Models\Absensi::where('jadwal_id', $record->id)
                                     ->where('siswa_id', $item['siswa_id'])
                                     ->whereDate('created_at', today())
@@ -225,66 +237,28 @@ class WaSendResource extends Resource
                                     ]);
                                 }
 
-                                // ===== KIRIM WHATSAPP =====
-                                $noWa = preg_replace('/[^0-9]/', '', $item['no_wa']);
-
-                                if (str_starts_with($noWa, '0')) {
-                                    $noWa = substr($noWa, 1);
-                                }
-
+                                // =========================
+                                // KIRIM WHATSAPP
+                                // =========================
                                 if (
-                                    $item['kirim_wa'] === true &&
-                                    ! empty($noWa) &&
-                                    strlen($noWa) >= 9 &&
-                                    $whatsappSetting &&
-                                    ! empty($whatsappSetting->token)
+                                    $item['kirim_wa'] === true
+                                    && ! empty($item['no_wa'])
+                                    && strlen($item['no_wa']) >= 10
                                 ) {
 
-                                    $pesan =
-                                        "Assalamu’alaikum Wr. Wb.\n\n"
-                                        . "Kami informasikan bahwa:\n"
-                                        . "Nama : {$item['nama_siswa']}\n"
-                                        . "Status kehadiran hari ini: *" . strtoupper($item['status']) . "*\n\n"
-                                        . "Terima kasih.\n";
-
-                                    $curl = curl_init();
-
-                                    curl_setopt_array($curl, [
-                                        CURLOPT_URL => 'https://api.fonnte.com/send',
-                                        CURLOPT_RETURNTRANSFER => true,
-                                        CURLOPT_POST => true,
-                                        CURLOPT_POSTFIELDS => [
-                                            'target' => "082141031276",
-                                            'message' => $pesan,
-                                            'countryCode' => '62',
-                                        ],
-                                        CURLOPT_HTTPHEADER => [
-                                            'Authorization: ' . $token,
-                                        ],
-                                    ]);
-
-                                    $response = curl_exec($curl);
-                                    $error    = curl_error($curl);
-
-                                    curl_close($curl);
-
-                                    if ($error) {
-                                        logger()->error('Fonnte Error', [
-                                            'siswa_id' => $item['siswa_id'],
-                                            'no_wa' => $noWa,
-                                            'error' => $error,
-                                        ]);
-                                    } else {
-                                        logger()->info('Fonnte Success', [
-                                            'siswa_id' => $item['siswa_id'],
-                                            'no_wa' => $noWa,
-                                            'response' => $response,
-                                        ]);
-                                    }
+                                    WhatsappFilamentController::kirimAbsensi(
+                                        $item['no_wa'],
+                                        $item['nama_siswa'],
+                                        $item['status'],
+                                        $whatsappSetting->token
+                                    );
                                 }
                             }
                         }
 
+                        // =========================
+                        // TANDA SUDAH DIKIRIM
+                        // =========================
                         \App\Models\JadwalTanggalStatusWa::updateOrCreate(
                             [
                                 'jadwal_id' => $record->id,

@@ -16,4 +16,8 @@ class Lembaga extends Model implements HasMedia
         'longitude',
         'radius_meter',
     ];
+    public function gurus()
+    {
+        return $this->hasMany(Guru::class);
+    }
 }

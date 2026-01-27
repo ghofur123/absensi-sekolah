@@ -45,4 +45,8 @@ class Jadwal extends Model
     {
         return $this->hasMany(JadwalKelas::class);
     }
+    public function jadwalTanggalStatusWa()
+    {
+        return $this->hasOne(JadwalTanggalStatusWa::class);
+    }
 }

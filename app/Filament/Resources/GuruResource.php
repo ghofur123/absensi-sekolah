@@ -75,10 +75,6 @@ class GuruResource extends Resource
                 TextColumn::make('lembaga.nama_lembaga')
                     ->label('Lembaga')
                     ->sortable(),
-
-                TextColumn::make('user.name')
-                    ->label('Akun')
-                    ->default('-'),
                 TextColumn::make('user.email')
                     ->label('Akun')
                     ->default('-'),
@@ -139,6 +135,7 @@ class GuruResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make(),
                 ]),
             ]);
     }

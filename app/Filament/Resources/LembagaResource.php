@@ -25,7 +25,7 @@ class LembagaResource extends Resource
 
     protected static ?string $navigationLabel = 'Lembaga';
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
-    protected static ?string $navigationGroup = 'Master Data';
+    protected static ?string $navigationGroup = 'Manajemen Lembaga';
 
     public static function form(Form $form): Form
     {
