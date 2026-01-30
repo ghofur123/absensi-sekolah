@@ -14,30 +14,6 @@ class ScanAbsensiController extends Controller
     {
         return view('scan.scan-jadwal', compact('jadwal'));
     }
-    // public function scanAuto()
-    // {
-    //     $hariInggris = Carbon::now()->format('l'); // Monday, Tuesday, ...
-
-    //     $mapHari = [
-    //         'Monday' => 'senin',
-    //         'Tuesday' => 'selasa',
-    //         'Wednesday' => 'rabu',
-    //         'Thursday' => 'kamis',
-    //         'Friday' => 'jumat',
-    //         'Saturday' => 'sabtu',
-    //         'Sunday' => 'minggu', // kalau nanti ada
-    //     ];
-
-    //     $hariIni = $mapHari[$hariInggris] ?? null;
-
-    //     // Semua jadwal untuk dropdown
-    //     $jadwals = Jadwal::all();
-
-    //     // Jadwal hari ini saja
-    //     $jadwalsToday = $hariIni ? Jadwal::where('hari', $hariIni)->get() : collect();
-
-    //     return view('scan.scan-auto', compact('jadwals', 'jadwalsToday'));
-    // }
     public function store(Request $request, Jadwal $jadwal)
     {
         try {
@@ -46,7 +22,6 @@ class ScanAbsensiController extends Controller
             ]);
 
             // cari siswa
-            // $siswa = Siswa::with('kelas')->find($request->qr);
             $siswa = Siswa::with('kelas')
                 ->where('id', $request->qr)
                 ->where('lembaga_id', $jadwal->lembaga_id)
@@ -71,27 +46,47 @@ class ScanAbsensiController extends Controller
                 ]);
             }
 
-            // ⛔ ANTI DUPLIKAT HARI INI
-            $sudahAbsen = Absensi::where('jadwal_id', $jadwal->id)
+            // Ambil absensi hari ini jika ada
+            $absensi = Absensi::where('jadwal_id', $jadwal->id)
                 ->where('siswa_id', $siswa->id)
                 ->whereDate('created_at', today())
-                ->exists();
+                ->first();
 
-            if ($sudahAbsen) {
+            if ($absensi) {
+                if ($absensi->status === 'hadir') {
+                    // Siswa sudah hadir, tidak bisa diubah
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => '⚠️ Siswa sudah absen hadir hari ini'
+                    ]);
+                } else {
+                    // Update status menjadi hadir
+                    $absensi->update([
+                        'status' => 'hadir',
+                        'waktu_scan' => now(),
+                        'diabsenkan_oleh_user_id' => auth()->id(),
+                    ]);
+
+                    return response()->json([
+                        'status' => 'success',
+                        'message' => '✅ Absensi siswa berhasil diperbarui'
+                    ]);
+                }
+            } else {
+                // Belum ada absensi hari ini, buat baru
+                Absensi::create([
+                    'jadwal_id' => $jadwal->id,
+                    'siswa_id' => $siswa->id,
+                    'status' => 'hadir',
+                    'waktu_scan' => now(),
+                    'diabsenkan_oleh_user_id' => auth()->id(),
+                ]);
+
                 return response()->json([
-                    'status' => 'error',
-                    'message' => '⚠️ Siswa sudah absen hari ini'
+                    'status' => 'success',
+                    'message' => '✅ Absensi siswa berhasil disimpan'
                 ]);
             }
-
-            // ✅ SIMPAN ABSENSI
-            Absensi::create([
-                'jadwal_id' => $jadwal->id,
-                'siswa_id' => $siswa->id,
-                'status' => 'hadir',
-                'waktu_scan' => now(),
-                'diabsenkan_oleh_user_id' => auth()->id(),
-            ]);
 
             return response()->json([
                 'status' => 'success',
