@@ -20,6 +20,10 @@ class Kelas extends Model
     {
         return $this->hasMany(Siswa::class, 'kelas_id');
     }
+    public function absensis()
+    {
+        return $this->hasMany(Absensi::class, 'kelas_id');
+    }
     // pivot
     public function jadwals()
     {

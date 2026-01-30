@@ -20,4 +20,8 @@ class Lembaga extends Model implements HasMedia
     {
         return $this->hasMany(Guru::class);
     }
+    public function kelas()
+    {
+        return $this->hasMany(Kelas::class);
+    }
 }

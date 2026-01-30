@@ -14,30 +14,30 @@ class ScanAbsensiController extends Controller
     {
         return view('scan.scan-jadwal', compact('jadwal'));
     }
-    public function scanAuto()
-    {
-        $hariInggris = Carbon::now()->format('l'); // Monday, Tuesday, ...
+    // public function scanAuto()
+    // {
+    //     $hariInggris = Carbon::now()->format('l'); // Monday, Tuesday, ...
 
-        $mapHari = [
-            'Monday' => 'senin',
-            'Tuesday' => 'selasa',
-            'Wednesday' => 'rabu',
-            'Thursday' => 'kamis',
-            'Friday' => 'jumat',
-            'Saturday' => 'sabtu',
-            'Sunday' => 'minggu', // kalau nanti ada
-        ];
+    //     $mapHari = [
+    //         'Monday' => 'senin',
+    //         'Tuesday' => 'selasa',
+    //         'Wednesday' => 'rabu',
+    //         'Thursday' => 'kamis',
+    //         'Friday' => 'jumat',
+    //         'Saturday' => 'sabtu',
+    //         'Sunday' => 'minggu', // kalau nanti ada
+    //     ];
 
-        $hariIni = $mapHari[$hariInggris] ?? null;
+    //     $hariIni = $mapHari[$hariInggris] ?? null;
 
-        // Semua jadwal untuk dropdown
-        $jadwals = Jadwal::all();
+    //     // Semua jadwal untuk dropdown
+    //     $jadwals = Jadwal::all();
 
-        // Jadwal hari ini saja
-        $jadwalsToday = $hariIni ? Jadwal::where('hari', $hariIni)->get() : collect();
+    //     // Jadwal hari ini saja
+    //     $jadwalsToday = $hariIni ? Jadwal::where('hari', $hariIni)->get() : collect();
 
-        return view('scan.scan-auto', compact('jadwals', 'jadwalsToday'));
-    }
+    //     return view('scan.scan-auto', compact('jadwals', 'jadwalsToday'));
+    // }
     public function store(Request $request, Jadwal $jadwal)
     {
         try {
@@ -46,12 +46,16 @@ class ScanAbsensiController extends Controller
             ]);
 
             // cari siswa
-            $siswa = Siswa::with('kelas')->find($request->qr);
+            // $siswa = Siswa::with('kelas')->find($request->qr);
+            $siswa = Siswa::with('kelas')
+                ->where('id', $request->qr)
+                ->where('lembaga_id', $jadwal->lembaga_id)
+                ->first();
 
             if (! $siswa) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => '❌ Siswa tidak ditemukan'
+                    'message' => '❌ Siswa tidak ditemukan atau bukan peserta jadwal ini atau bukan siswa dari lembaga ini'
                 ]);
             }
 

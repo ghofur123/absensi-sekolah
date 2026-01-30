@@ -11,9 +11,17 @@ class Absensi extends Model
         'jadwal_id',
         'diabsenkan_oleh_user_id',
         'status',
+        'tanggal',
         'waktu_scan',
     ];
-
+    protected static function booted()
+    {
+        static::creating(function ($absensi) {
+            if (empty($absensi->tanggal)) {
+                $absensi->tanggal = now()->toDateString();
+            }
+        });
+    }
     protected $casts = [
         'waktu_scan' => 'datetime',
     ];

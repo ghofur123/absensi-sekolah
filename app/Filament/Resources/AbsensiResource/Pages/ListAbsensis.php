@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AbsensiResource\Pages;
 
 use App\Filament\Resources\AbsensiResource;
+use App\Filament\Widgets\AbsensiPerKelasChart;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 
@@ -20,6 +21,12 @@ class ListAbsensis extends ListRecords
             //     ->color('success')
             //     ->url(route('scan.auto')) // route web tadi
             //     ->openUrlInNewTab(),
+        ];
+    }
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            // AbsensiPerKelasChart::class,
         ];
     }
 }

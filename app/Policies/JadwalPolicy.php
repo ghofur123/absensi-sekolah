@@ -15,7 +15,7 @@ class JadwalPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_jadwal');
+        return $user->can('view_any_wa::send');
     }
 
     /**
@@ -23,7 +23,7 @@ class JadwalPolicy
      */
     public function view(User $user, Jadwal $jadwal): bool
     {
-        return $user->can('view_jadwal');
+        return $user->can('view_wa::send');
     }
 
     /**
@@ -31,7 +31,7 @@ class JadwalPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_jadwal');
+        return $user->can('create_wa::send');
     }
 
     /**
@@ -39,7 +39,7 @@ class JadwalPolicy
      */
     public function update(User $user, Jadwal $jadwal): bool
     {
-        return $user->can('update_jadwal');
+        return $user->can('update_wa::send');
     }
 
     /**
@@ -47,7 +47,7 @@ class JadwalPolicy
      */
     public function delete(User $user, Jadwal $jadwal): bool
     {
-        return $user->can('delete_jadwal');
+        return $user->can('delete_wa::send');
     }
 
     /**
@@ -55,7 +55,7 @@ class JadwalPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_jadwal');
+        return $user->can('delete_any_wa::send');
     }
 
     /**
@@ -63,7 +63,7 @@ class JadwalPolicy
      */
     public function forceDelete(User $user, Jadwal $jadwal): bool
     {
-        return $user->can('force_delete_jadwal');
+        return $user->can('force_delete_wa::send');
     }
 
     /**
@@ -71,7 +71,7 @@ class JadwalPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_jadwal');
+        return $user->can('force_delete_any_wa::send');
     }
 
     /**
@@ -79,7 +79,7 @@ class JadwalPolicy
      */
     public function restore(User $user, Jadwal $jadwal): bool
     {
-        return $user->can('restore_jadwal');
+        return $user->can('restore_wa::send');
     }
 
     /**
@@ -87,7 +87,7 @@ class JadwalPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_jadwal');
+        return $user->can('restore_any_wa::send');
     }
 
     /**
@@ -95,7 +95,7 @@ class JadwalPolicy
      */
     public function replicate(User $user, Jadwal $jadwal): bool
     {
-        return $user->can('replicate_jadwal');
+        return $user->can('replicate_wa::send');
     }
 
     /**
@@ -103,6 +103,6 @@ class JadwalPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_jadwal');
+        return $user->can('reorder_wa::send');
     }
 }

@@ -147,7 +147,25 @@
         ⏳ Memproses absensi...
     </div>
 
+    <!-- 🔊 AUDIO -->
+    <audio id="sound-success" src="/sounds/success.mp3" preload="auto"></audio>
+    <audio id="sound-error" src="/sounds/error.mp3" preload="auto"></audio>
+
     <script>
+        const soundSuccess = document.getElementById('sound-success');
+        const soundError = document.getElementById('sound-error');
+
+        function playSuccess() {
+            soundSuccess.currentTime = 0;
+            soundSuccess.play().catch(() => {});
+            if (navigator.vibrate) navigator.vibrate(80);
+        }
+
+        function playError() {
+            soundError.currentTime = 0;
+            soundError.play().catch(() => {});
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        }
         const reader = new Html5Qrcode("reader");
         let locked = false;
 
@@ -181,10 +199,12 @@
                         const log = document.getElementById('log');
 
                         if (res.status === 'success') {
+                            playSuccess();
                             log.innerHTML =
                                 `<div class="success">✅ ${res.nama} (${res.mode})</div>` +
                                 log.innerHTML;
                         } else {
+                            playError();
                             log.innerHTML =
                                 `<div class="error">❌ ${res.message}</div>` +
                                 log.innerHTML;

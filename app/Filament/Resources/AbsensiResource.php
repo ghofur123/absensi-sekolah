@@ -53,9 +53,13 @@ class AbsensiResource extends Resource
                     ->label('NISN')
                     ->searchable(),
 
-                TextColumn::make('jadwal.hari')
-                    ->label('Jadwal')
-                    ->toggleable(),
+                // TextColumn::make('jadwal.hari')
+                //     ->label('Jadwal')
+                //     ->toggleable(),
+                TextColumn::make('jadwal.mataPelajaran.nama_mapel')
+                    ->label('Mata Pelajaran')
+                    ->toggleable()
+                    ->sortable(),
 
                 BadgeColumn::make('status')
                     ->label('Status')
@@ -85,26 +89,54 @@ class AbsensiResource extends Resource
                             return null;
                         }
 
-                        $scan    = Carbon::parse($record->waktu_scan);
-                        $mulai   = Carbon::parse($record->jadwal->jam_mulai);
-                        $selesai = Carbon::parse($record->jadwal->jam_selesai);
+                        Carbon::setLocale('id');
 
-                        $batasPas   = $mulai->copy()->addMinutes(15);   // toleransi tepat waktu
-                        $batasAwal  = $mulai->copy()->subMinutes(30);   // terlalu awal
+                        // 1. Waktu scan
+                        $scan = Carbon::parse($record->waktu_scan);
 
+                        // 2. Hari scan (rabu, kamis, dll)
+                        $hariScan = strtolower($scan->translatedFormat('l'));
+
+                        // 3. Hari jadwal (SUDAH ARRAY)
+                        $hariJadwal = array_map(
+                            fn($hari) => strtolower(trim($hari)),
+                            $record->jadwal->hari
+                        );
+
+                        if (! in_array($hariScan, $hariJadwal)) {
+                            return 'Di Luar Jadwal';
+                        }
+
+                        // 4. Jam jadwal ikut tanggal scan
+                        $mulai = $scan->copy()
+                            ->setTimeFromTimeString($record->jadwal->jam_mulai);
+
+                        $selesai = $scan->copy()
+                            ->setTimeFromTimeString($record->jadwal->jam_selesai);
+
+                        // 5. Antisipasi jadwal lintas malam
+                        if ($selesai->lt($mulai)) {
+                            $selesai->addDay();
+                        }
+
+                        // 6. Toleransi
+                        $batasAwal = $mulai->copy()->subMinutes(15);
+                        $batasPas  = $mulai->copy()->addMinutes(15);
+
+                        // 7. Logika final
                         if ($scan->lt($batasAwal)) {
                             return 'Di Luar Jadwal';
                         }
 
-                        if ($scan->lt($mulai)) {
-                            return 'Belum Waktu';
+                        if ($scan->gte($batasAwal) && $scan->lt($mulai)) {
+                            return 'Terlalu Awal';
                         }
 
-                        if ($scan->lte($batasPas)) {
+                        if ($scan->gte($mulai) && $scan->lte($batasPas)) {
                             return 'Tepat Waktu';
                         }
 
-                        if ($scan->lte($selesai)) {
+                        if ($scan->gt($batasPas) && $scan->lte($selesai)) {
                             return 'Terlambat';
                         }
 

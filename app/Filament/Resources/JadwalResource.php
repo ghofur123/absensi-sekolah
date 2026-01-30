@@ -242,8 +242,13 @@ class JadwalResource extends Resource
                                     return;
                                 }
 
-                                $kelasList = \App\Models\JadwalKelas::with('kelas')
+                                $jadwal = \App\Models\Jadwal::findOrFail($jadwalId);
+
+                                $kelasList = \App\Models\JadwalKelas::with(['kelas'])
                                     ->where('jadwal_id', $jadwalId)
+                                    ->whereHas('kelas', function ($q) use ($jadwal) {
+                                        $q->where('lembaga_id', $jadwal->lembaga_id);
+                                    })
                                     ->get();
 
                                 $absensiHariIni = \App\Models\Absensi::where('jadwal_id', $jadwalId)
