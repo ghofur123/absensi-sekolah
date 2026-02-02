@@ -153,7 +153,11 @@ class AbsensiResource extends Resource
 
                 TextColumn::make('waktu_scan')
                     ->label('Waktu Scan')
-                    ->dateTime('d M Y H:i')
+                    // ->dateTime('d M Y H:i')
+                    ->formatStateUsing(
+                        fn($state) =>
+                        \Carbon\Carbon::parse($state)->format('d M Y H:i')
+                    )
                     ->sortable(),
 
                 TextColumn::make('users.name')

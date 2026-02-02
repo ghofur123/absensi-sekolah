@@ -30,7 +30,7 @@ return new class extends Migration
 
             $table->enum('status', ['hadir', 'izin', 'sakit', 'alpa'])->default('alpa');
 
-            $table->timestamp('waktu_scan')->nullable();
+            $table->dateTime('waktu_scan')->nullable();
             $table->date('tanggal');
             $table->timestamps();
             // Optional index untuk performa

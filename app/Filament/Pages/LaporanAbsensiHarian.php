@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\Lembaga;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
+use App\Support\AbsensiStatusHelper;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 
@@ -27,17 +28,19 @@ class LaporanAbsensiHarian extends Page
     public ?int $mataPelajaranId = null;
     public ?string $status = null;
 
-    // DATA
-    public $lembagas;
-    public $kelas;
-    public $mata_pelajaran;
-    public $absensi = null;
+    // DATA — semuanya plain array untuk Livewire serialization
+    public array $lembagas = [];
+    public array $kelas = [];
+    public array $mata_pelajaran = [];
+    public array $absensi = [];
 
     public function mount(): void
     {
-        $this->lembagas = Lembaga::orderBy('nama_lembaga')->get();
-        $this->kelas = collect();
-        $this->mata_pelajaran = collect();
+        // Konversi ke plain array dari awal
+        $this->lembagas = Lembaga::orderBy('nama_lembaga')
+            ->get()
+            ->map(fn($l) => ['id' => $l->id, 'nama' => $l->nama_lembaga])
+            ->toArray();
     }
 
     public function updatedLembagaId($value): void
@@ -46,11 +49,19 @@ class LaporanAbsensiHarian extends Page
         $this->mataPelajaranId = null;
         $this->tanggalAwal = null;
         $this->tanggalAkhir = null;
+        $this->status = null;
 
-        $this->kelas = Kelas::where('lembaga_id', $value)->get();
-        $this->mata_pelajaran = MataPelajaran::where('lembaga_id', $value)->get();
+        $this->kelas = Kelas::where('lembaga_id', $value)
+            ->get()
+            ->map(fn($k) => ['id' => $k->id, 'nama' => $k->nama_kelas])
+            ->toArray();
 
-        $this->absensi = null;
+        $this->mata_pelajaran = MataPelajaran::where('lembaga_id', $value)
+            ->get()
+            ->map(fn($m) => ['id' => $m->id, 'nama' => $m->nama_mapel])
+            ->toArray();
+
+        $this->absensi = [];
     }
 
     public function updatedKelasId(): void
@@ -87,7 +98,7 @@ class LaporanAbsensiHarian extends Page
             !$this->tanggalAkhir ||
             !$this->mataPelajaranId
         ) {
-            $this->absensi = null;
+            $this->absensi = [];
             return;
         }
 
@@ -99,9 +110,9 @@ class LaporanAbsensiHarian extends Page
             ->get();
 
         // =========================
-        // ABSENSI (TANPA FILTER STATUS)
+        // ABSENSI
         // =========================
-        $absensi = Absensi::with('jadwal')
+        $absensiData = Absensi::with('jadwal')
             ->whereHas('siswa', function ($q) {
                 $q->where('lembaga_id', $this->lembagaId)
                     ->where('kelas_id', $this->kelasId);
@@ -113,100 +124,157 @@ class LaporanAbsensiHarian extends Page
                 $this->tanggalAwal . ' 00:00:00',
                 $this->tanggalAkhir . ' 23:59:59',
             ])
-            ->get()
-            ->groupBy('siswa_id');
+            ->get();
+
+        $absensiGrouped = $absensiData->groupBy('siswa_id');
 
         // =========================
-        // SEMUA TANGGAL (FULL RANGE)
+        // TANGGAL UNIK
         // =========================
-        $tanggal = collect(
-            Carbon::parse($this->tanggalAwal)
-                ->daysUntil(Carbon::parse($this->tanggalAkhir))
-                ->map(fn($d) => $d->format('Y-m-d'))
-        );
+        $tanggalAbsensi = $absensiData
+            ->pluck('waktu_scan')
+            ->map(fn($waktu) => Carbon::parse($waktu)->format('Y-m-d'))
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        if (empty($tanggalAbsensi)) {
+            $this->absensi = [];
+            return;
+        }
+
+        $totalHari = count($tanggalAbsensi);
 
         // =========================
-        // FINAL DATA
+        // PROSES DATA PER SISWA
+        // =========================
+        $rows = [];
+
+        foreach ($siswa as $s) {
+            $dataSiswa = $absensiGrouped->get($s->id, collect());
+
+            // --- Resolusi status per hari ---
+            $statusPerHari = [];
+
+            foreach ($tanggalAbsensi as $tgl) {
+                $absensiHari = $dataSiswa->filter(
+                    fn($a) => Carbon::parse($a->waktu_scan)->format('Y-m-d') === $tgl
+                );
+
+                if ($absensiHari->isEmpty()) {
+                    $statusPerHari[$tgl] = [
+                        'status' => 'alpa',
+                        'kode'   => 'A',
+                        'text'   => 'Alpa',
+                    ];
+                    continue;
+                }
+
+                // Prioritas: hadir > izin > sakit
+                $terpilih = null;
+                foreach (['hadir', 'izin', 'sakit'] as $p) {
+                    $found = $absensiHari->first(fn($a) => $a->status === $p);
+                    if ($found) {
+                        $terpilih = $found;
+                        break;
+                    }
+                }
+                if (!$terpilih) {
+                    $terpilih = $absensiHari->first();
+                }
+
+                $kode = '-';
+                $text = '';
+
+                if ($terpilih->status === 'izin') {
+                    $kode = 'I';
+                    $text = 'Izin';
+                } elseif ($terpilih->status === 'sakit') {
+                    $kode = 'S';
+                    $text = 'Sakit';
+                } elseif ($terpilih->status === 'hadir') {
+                    $statusMasuk = AbsensiStatusHelper::statusMasuk($terpilih);
+                    $kode = AbsensiStatusHelper::kode($statusMasuk, $terpilih->status);
+                    $text = $statusMasuk ?? 'Hadir';
+                } else {
+                    $text = ucfirst($terpilih->status ?? 'Unknown');
+                }
+
+                $statusPerHari[$tgl] = [
+                    'status' => $terpilih->status,
+                    'kode'   => $kode,
+                    'text'   => $text,
+                ];
+            }
+
+            // --- Statistik ---
+            $hadir      = 0;
+            $izin       = 0;
+            $sakit      = 0;
+            $alpa       = 0;
+            $hadirResmi = 0;
+
+            foreach ($statusPerHari as $info) {
+                switch ($info['status']) {
+                    case 'hadir':
+                        $hadir++;
+                        if ($info['kode'] === 'H') $hadirResmi++;
+                        break;
+                    case 'izin':
+                        $izin++;
+                        break;
+                    case 'sakit':
+                        $sakit++;
+                        break;
+                    default:
+                        $alpa++;
+                        break;
+                }
+            }
+
+            $persentase = $totalHari > 0
+                ? round(($hadirResmi / $totalHari) * 100, 1)
+                : 0;
+
+            $keterangan = match (true) {
+                $persentase >= 95 => 'Sangat Baik',
+                $persentase >= 85 => 'Baik',
+                $persentase >= 75 => 'Cukup',
+                $persentase >= 60 => 'Kurang',
+                default           => 'Perlu Perhatian',
+            };
+
+            // --- Kolom harian (plain indexed array) ---
+            $harian = [];
+            foreach ($tanggalAbsensi as $tgl) {
+                $info = $statusPerHari[$tgl];
+
+                if ($this->status && $info['status'] !== $this->status) {
+                    $harian[] = ['kode' => '-', 'text' => ''];
+                } else {
+                    $harian[] = ['kode' => $info['kode'], 'text' => $info['text']];
+                }
+            }
+
+            $rows[] = [
+                'nama'       => $s->nama_siswa,
+                'harian'     => $harian,
+                'hadir'      => $hadir,
+                'izin'       => $izin,
+                'sakit'      => $sakit,
+                'alpa'       => $alpa,
+                'persentase' => $persentase,
+                'keterangan' => $keterangan,
+            ];
+        }
+
+        // =========================
+        // FINAL — semuanya plain array
         // =========================
         $this->absensi = [
-            'tanggal' => $tanggal,
-            'data' => $siswa->map(function ($s) use ($absensi, $tanggal) {
-
-                $dataSiswa = $absensi->get($s->id, collect());
-
-                $harian = $tanggal->mapWithKeys(function ($tgl) use ($dataSiswa) {
-
-                    $absen = $dataSiswa->first(
-                        fn($a) => Carbon::parse($a->waktu_scan)->format('Y-m-d') === $tgl
-                    );
-
-                    // =========================
-                    // TIDAK ADA ABSENSI
-                    // =========================
-                    if (!$absen) {
-
-                        // ❗ JIKA FILTER STATUS AKTIF → "-"
-                        if ($this->status) {
-                            return [$tgl => [
-                                'kode' => '-',
-                                'text' => '',
-                            ]];
-                        }
-
-                        // ❗ JIKA TIDAK ADA FILTER → ALPA
-                        return [$tgl => [
-                            'kode' => 'A',
-                            'text' => 'Alpa',
-                        ]];
-                    }
-
-                    // =========================
-                    // FILTER STATUS AKTIF
-                    // =========================
-                    if ($this->status && $absen->status !== $this->status) {
-                        return [$tgl => [
-                            'kode' => '-',
-                            'text' => '',
-                        ]];
-                    }
-
-                    // =========================
-                    // IZIN / SAKIT
-                    // =========================
-                    if ($absen->status !== 'hadir') {
-                        return [$tgl => [
-                            'kode' => strtoupper(substr($absen->status, 0, 1)),
-                            'text' => ucfirst($absen->status),
-                        ]];
-                    }
-
-                    // =========================
-                    // HADIR (TEPAT / TELAT)
-                    // =========================
-                    $jamMulai = Carbon::parse($absen->jadwal->jam_mulai);
-                    $scan = Carbon::parse($absen->waktu_scan);
-
-                    if ($scan->lte($jamMulai)) {
-                        return [$tgl => [
-                            'kode' => 'H',
-                            'text' => 'Tepat Waktu',
-                        ]];
-                    }
-
-                    $telat = $jamMulai->diffInMinutes($scan);
-
-                    return [$tgl => [
-                        'kode' => 'H',
-                        'text' => "Terlambat {$telat} menit",
-                    ]];
-                });
-
-
-                return (object) [
-                    'siswa' => $s,
-                    'harian' => $harian,
-                ];
-            }),
+            'tanggal' => $tanggalAbsensi,
+            'data'    => $rows,
         ];
     }
 }
