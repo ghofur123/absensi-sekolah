@@ -250,7 +250,7 @@ class WaSendResource extends Resource
                                         $item['no_wa'],
                                         $item['nama_siswa'],
                                         $item['status'],
-                                        $whatsappSetting->token
+                                        $record->lembaga_id
                                     );
                                 }
                             }

@@ -29,11 +29,13 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use ZipStream\Time;
 
 class JadwalResource extends Resource
 {
@@ -103,10 +105,49 @@ class JadwalResource extends Resource
                     ->required(),
 
                 TimePicker::make('jam_mulai')
-                    ->required(),
+                    ->label('Jam Mulai')
+                    ->required()
+                    ->reactive(),
+
+                TextInput::make('batas_awal')
+                    ->label('Batas Awal (menit)')
+                    ->numeric()
+                    ->required()
+                    ->reactive()
+                    ->disabled(fn(callable $get) => blank($get('jam_mulai')))
+                    ->hint('Jam mulai - batas awal')
+                    ->suffix(function (callable $get) {
+                        if (blank($get('jam_mulai')) || blank($get('batas_awal'))) {
+                            return null;
+                        }
+
+                        return Carbon::parse($get('jam_mulai'))
+                            ->subMinutes((int) $get('batas_awal'))
+                            ->format('H:i');
+                    }),
 
                 TimePicker::make('jam_selesai')
-                    ->required(),
+                    ->label('Jam Selesai')
+                    ->required()
+                    ->reactive(),
+
+                TextInput::make('batas_pas')
+                    ->label('Batas Pas (menit)')
+                    ->numeric()
+                    ->required()
+                    ->reactive()
+                    ->disabled(fn(callable $get) => blank($get('jam_selesai')))
+                    ->hint('Jam selesai + batas pas')
+                    ->suffix(function (callable $get) {
+                        if (blank($get('jam_selesai')) || blank($get('batas_pas'))) {
+                            return null;
+                        }
+
+                        return Carbon::parse($get('jam_selesai'))
+                            ->addMinutes((int) $get('batas_pas'))
+                            ->format('H:i');
+                    }),
+
 
             ]);
     }
@@ -115,19 +156,47 @@ class JadwalResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('hari')
-                    ->badge()
-                    ->sortable(),
+                // TextColumn::make('hari')
+                //     ->badge()
+                //     ->sortable(),
 
-                TextColumn::make('jam_mulai')
-                    ->time('H:i'),
+                TextColumn::make('jam')
+                    ->label('Jam')
+                    ->getStateUsing(function ($record) {
 
-                TextColumn::make('jam_selesai')
-                    ->time('H:i'),
+                        $mulai   = \Carbon\Carbon::parse($record->jam_mulai);
+                        $selesai = \Carbon\Carbon::parse($record->jam_selesai);
+
+                        $bukaAbsensi = $mulai->copy()->subMinutes($record->batas_awal)->format('H:i');
+                        $batasPas    = $mulai->copy()->addMinutes($record->batas_pas)->format('H:i');
+
+                        return "
+                            <div class='text-center text-sm leading-tight'>
+                                <div><strong>Jadwal</strong></div>
+                                <div>{$mulai->format('H:i')} - {$selesai->format('H:i')}</div>
+
+                                <hr class='my-1'>
+
+                                <div class='text-xs text-gray-600'>
+                                    <div>Buka Absensi : {$bukaAbsensi}</div>
+                                    <div>Tepat Waktu : ≤ {$batasPas}</div>
+                                </div>
+                            </div>
+                        ";
+                    })
+                    ->html(),
+
 
                 TextColumn::make('mataPelajaran.nama_mapel')
                     ->label('Mata Pelajaran')
                     ->searchable(),
+                TextColumn::make('kelas')
+                    ->label('Kelas')
+                    ->badge()
+                    ->getStateUsing(
+                        fn($record) =>
+                        $record->kelases->pluck('nama_kelas')->toArray()
+                    ),
 
                 TextColumn::make('guru.nama')
                     ->label('Guru')
@@ -135,6 +204,7 @@ class JadwalResource extends Resource
                     ->searchable(),
 
                 TextColumn::make('lembaga.nama_lembaga')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Lembaga'),
             ])
             ->filters([
@@ -167,13 +237,25 @@ class JadwalResource extends Resource
                         return $query->whereJsonContains('hari', $data['value']);
                     }),
 
-                Tables\Filters\SelectFilter::make('lembaga')
+                SelectFilter::make('lembaga')
                     ->relationship('lembaga', 'nama_lembaga'),
+                Filter::make('jam_aktif')
+                    ->label('Jam Aktif')
+                    ->toggle()
+                    ->default(true)
+                    ->query(function (Builder $query) {
+
+                        $now = Carbon::now()->format('H:i:s');
+
+                        $query
+                            ->whereTime('jam_mulai', '<=', Carbon::parse($now)->addHour())
+                            ->whereTime('jam_selesai', '>=', Carbon::parse($now)->subHour());
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Action::make('atur_kelas')
-                    ->label('Atur Kelas')
+                    ->label('Kelas')
                     ->icon('heroicon-o-academic-cap')
                     ->color('info')
                     ->modalHeading('Pilih Kelas yang Mengikuti Jadwal')
@@ -203,14 +285,14 @@ class JadwalResource extends Resource
                             ->send();
                     }),
                 Action::make('cetak_kartu')
-                    ->label('Cetak QR Absen Guru')
+                    ->label('QR Guru')
                     ->icon('heroicon-o-printer')
-                    ->color('success')
+                    ->color('danger')
                     ->url(fn($record) => route('qr.absen.guru.pdf', $record->id))
                     ->openUrlInNewTab(),
 
                 Action::make('absensi')
-                    ->label('Absensi Manual')
+                    ->label('Absensi')
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('success')
                     ->modalHeading('Absensi Siswa')
@@ -387,7 +469,7 @@ class JadwalResource extends Resource
                     }),
 
                 Action::make('scan_qr')
-                    ->label('Scan QR')
+                    ->label('Scan Siswa')
                     ->icon('heroicon-o-qr-code')
                     ->color('success')
                     ->url(fn($record) => route('scan.jadwal', $record))

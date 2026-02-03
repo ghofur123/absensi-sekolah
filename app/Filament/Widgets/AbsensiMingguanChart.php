@@ -10,6 +10,13 @@ class AbsensiMingguanChart extends ChartWidget
 {
     protected static ?string $heading = 'Grafik Absensi 7 Hari Terakhir';
 
+    protected static ?string $icon = 'heroicon-o-chart-bar';
+
+    public function getColumnSpan(): int|string|array
+    {
+        return 12; // full width
+    }
+
     protected function getData(): array
     {
         $labels = [];

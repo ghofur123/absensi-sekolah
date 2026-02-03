@@ -13,6 +13,8 @@ class Jadwal extends Model
         'hari',
         'jam_mulai',
         'jam_selesai',
+        'batas_awal',
+        'batas_pas',
     ];
     protected $casts = [
         'hari' => 'array',

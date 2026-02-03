@@ -69,8 +69,36 @@ class ScanAbsensiController extends Controller
 
                     return response()->json([
                         'status' => 'success',
-                        'message' => '✅ Absensi siswa berhasil diperbarui'
+                        'nama'   => $siswa->nama_siswa,
+                        'kelas'  => $siswa->kelas->nama_kelas ?? '-',
+                        'mode'   => 'Berhasil Diupdate',
                     ]);
+
+                    // --------------------------------------------------
+                    // KIRIM WA OTOMATIS JIKA AKTIF
+                    // --------------------------------------------------
+                    // $setting = $lembaga->lembagaSetting;
+
+                    // if (
+                    //     ! $setting
+                    //     || ! $setting->wa_absensi_enabled
+                    //     || ! $setting->kirim_hadir
+                    // ) {
+                    //     return;
+                    // }
+
+                    // $noWa = preg_replace('/[^0-9]/', '', $siswa->no_wa ?? '');
+
+                    // if (strlen($noWa) < 10) {
+                    //     return;
+                    // }
+
+                    // WhatsappFilamentController::kirimAbsensi(
+                    //     $noWa,
+                    //     $siswa->nama_siswa,
+                    //     'hadir',
+                    //     $lembaga->id
+                    // );
                 }
             } else {
                 // Belum ada absensi hari ini, buat baru
@@ -84,16 +112,37 @@ class ScanAbsensiController extends Controller
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => '✅ Absensi siswa berhasil disimpan'
+                    'nama'   => $siswa->nama_siswa,
+                    'kelas'  => $siswa->kelas->nama_kelas ?? '-',
+                    'mode'   => 'Berhasil Disimpan',
                 ]);
+
+                // --------------------------------------------------
+                // KIRIM WA OTOMATIS JIKA AKTIF
+                // --------------------------------------------------
+                $lembaga = $jadwal->lembaga;
+
+                if ($lembaga->lembagaSetting?->kirim_hadir) {
+
+                    $noWa = $siswa->no_wa ?? null;
+
+                    if ($noWa) {
+                        WhatsappFilamentController::kirimAbsensi(
+                            $noWa,
+                            $siswa->nama_siswa,
+                            'hadir',
+                            $lembaga->id
+                        );
+                    }
+                }
             }
 
-            return response()->json([
-                'status' => 'success',
-                'nama'   => $siswa->nama_siswa,
-                'kelas'  => $siswa->kelas->nama_kelas ?? '-',
-                'mode'   => 'insert',
-            ]);
+            // return response()->json([
+            //     'status' => 'success',
+            //     'nama'   => $siswa->nama_siswa,
+            //     'kelas'  => $siswa->kelas->nama_kelas ?? '-',
+            //     'mode'   => 'insert',
+            // ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',

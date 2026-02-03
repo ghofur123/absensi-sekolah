@@ -110,8 +110,8 @@ class AbsensiStatusHelper
             $selesai->addDay();
         }
 
-        $batasAwal = $mulai->copy()->subMinutes(15);  // 15 menit sebelum mulai
-        $batasPas  = $mulai->copy()->addMinutes(15);  // 15 menit setelah mulai
+        $batasAwal = $mulai->copy()->subMinutes(($absensi->jadwal->batas_awal));
+        $batasPas  = $mulai->copy()->addMinutes(($absensi->jadwal->batas_pas));
 
         if ($scan->lt($batasAwal)) {
             return 'Terlalu Awal';

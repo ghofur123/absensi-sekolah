@@ -17,9 +17,15 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->text('header')->nullable();
-            $table->text('footer')->nullable();
-            $table->boolean('aktif')->default(true);
+            // ===== WA ORANG TUA =====
+            $table->text('header_orang_tua')->nullable();
+            $table->text('footer_orang_tua')->nullable();
+            $table->boolean('aktif_orang_tua')->default(true);
+
+            // ===== WA GURU =====
+            $table->text('header_guru')->nullable();
+            $table->text('footer_guru')->nullable();
+            $table->boolean('aktif_guru')->default(true);
 
             $table->timestamps();
 

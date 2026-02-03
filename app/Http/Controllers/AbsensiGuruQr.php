@@ -134,7 +134,7 @@ class AbsensiGuruQr extends Controller
         $jamMulai = Carbon::today('Asia/Jakarta')
             ->setTimeFromTimeString($jadwal->jam_mulai);
 
-        $batasTerlambat = $jamMulai->copy()->addMinutes(15);
+        $batasTerlambat = $jamMulai->copy()->addMinutes($jadwal->batas_pas);
 
         $statusMasuk = 'belum_waktu';
         $keterangan  = 'Scan sebelum jam mulai (' . $waktuScan->format('H:i') . ')';

@@ -8,14 +8,28 @@ class WaTemplate extends Model
 {
     protected $fillable = [
         'lembaga_id',
-        'header',
-        'footer',
-        'aktif',
+
+        // orang tua
+        'header_orang_tua',
+        'footer_orang_tua',
+        'aktif_orang_tua',
+
+        // guru
+        'header_guru',
+        'footer_guru',
+        'aktif_guru',
     ];
 
     protected $casts = [
-        'aktif' => 'boolean',
+        'aktif_orang_tua' => 'boolean',
+        'aktif_guru'      => 'boolean',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONSHIPS
+    |--------------------------------------------------------------------------
+    */
 
     public function lembaga()
     {

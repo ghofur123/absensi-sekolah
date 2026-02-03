@@ -15,6 +15,8 @@ use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
@@ -63,11 +65,43 @@ class LembagaSettingResource extends Resource
                     ]),
 
                 Section::make('Status Absensi yang Dikirimi Pesan')
+                    ->description('Pilih status absensi yang akan dikirim ke WhatsApp secara langsung di scan oleh guru tanpa menu Kirim WA Absensi')
                     ->schema([
-                        Toggle::make('kirim_hadir')->label('Hadir'),
-                        Toggle::make('kirim_izin')->label('Izin'),
-                        Toggle::make('kirim_sakit')->label('Sakit'),
-                        Toggle::make('kirim_alpa')->label('Alpa'),
+                        Toggle::make('kirim_hadir')
+                            ->label('Hadir')
+                            ->helperText(
+                                fn(Get $get) =>
+                                $get('kirim_hadir')
+                                    ? '✅ WA dikirim saat HADIR'
+                                    : '❌ WA tidak dikirim saat HADIR'
+                            ),
+
+                        Toggle::make('kirim_izin')
+                            ->label('Izin')
+                            ->helperText(
+                                fn(Get $get) =>
+                                $get('kirim_izin')
+                                    ? '✅ WA dikirim saat IZIN'
+                                    : '❌ WA tidak dikirim saat IZIN'
+                            ),
+
+                        Toggle::make('kirim_sakit')
+                            ->label('Sakit')
+                            ->helperText(
+                                fn(Get $get) =>
+                                $get('kirim_sakit')
+                                    ? '✅ WA dikirim saat SAKIT'
+                                    : '❌ WA tidak dikirim saat SAKIT'
+                            ),
+
+                        Toggle::make('kirim_alpa')
+                            ->label('Alpa')
+                            ->helperText(
+                                fn(Get $get) =>
+                                $get('kirim_alpa')
+                                    ? '⚠️ WA dikirim saat ALPA (anak tidak hadir)'
+                                    : '❌ WA tidak dikirim saat ALPA'
+                            ),
                     ])
                     ->columns(2)
                     ->visible(fn(Get $get) => $get('wa_absensi_enabled')),
@@ -108,40 +142,91 @@ class LembagaSettingResource extends Resource
                     ->color('success')
 
                     ->form([
-                        Toggle::make('aktif')
-                            ->label('Aktifkan Template')
-                            ->default(true),
 
-                        Textarea::make('header')
-                            ->label('Header Pesan')
-                            ->rows(4)
-                            ->placeholder("📢 Informasi Absensi\n{{nama_lembaga}}"),
+                        // =========================
+                        // TEMPLATE WA ORANG TUA
+                        // =========================
+                        Section::make('Template WhatsApp Orang Tua')
+                            ->description('Header & footer untuk pesan WA ke orang tua/wali')
+                            ->schema([
 
-                        Textarea::make('footer')
-                            ->label('Footer Pesan')
-                            ->rows(3)
-                            ->placeholder("Terima kasih 🙏\n— {{nama_lembaga}}"),
+                                Toggle::make('aktif_orang_tua')
+                                    ->label('Aktifkan WA ke Orang Tua')
+                                    ->default(true),
+
+                                Textarea::make('header_orang_tua')
+                                    ->label('Header Pesan')
+                                    ->rows(3)
+                                    ->placeholder('Yth. Orang Tua/Wali Murid'),
+
+                                Textarea::make('footer_orang_tua')
+                                    ->label('Footer Pesan')
+                                    ->rows(3)
+                                    ->placeholder("Terima kasih\nSD ABC"),
+
+                            ])
+                            ->collapsible(),
+
+                        // =========================
+                        // TEMPLATE WA GURU
+                        // =========================
+                        Section::make('Template WhatsApp Guru')
+                            ->description('Header & footer untuk pesan WA ke guru')
+                            ->schema([
+
+                                Toggle::make('aktif_guru')
+                                    ->label('Aktifkan WA ke Guru')
+                                    ->default(true),
+
+                                Textarea::make('header_guru')
+                                    ->label('Header Pesan')
+                                    ->rows(3)
+                                    ->placeholder('Yth. Bapak/Ibu Guru'),
+
+                                Textarea::make('footer_guru')
+                                    ->label('Footer Pesan')
+                                    ->rows(3)
+                                    ->placeholder("Salam Hormat\nKepala Sekolah"),
+
+                            ])
+                            ->collapsible(),
                     ])
 
+                    // =========================
+                    // ISI FORM SAAT MODAL DIBUKA
+                    // =========================
                     ->mountUsing(function ($form, $record) {
+
                         $template = WaTemplate::firstOrNew([
                             'lembaga_id' => $record->lembaga_id,
                         ]);
 
                         $form->fill([
-                            'header' => $template->header,
-                            'footer' => $template->footer,
-                            'aktif'  => $template->aktif ?? true,
+                            'header_orang_tua' => $template->header_orang_tua,
+                            'footer_orang_tua' => $template->footer_orang_tua,
+                            'aktif_orang_tua'  => $template->aktif_orang_tua ?? true,
+
+                            'header_guru' => $template->header_guru,
+                            'footer_guru' => $template->footer_guru,
+                            'aktif_guru'  => $template->aktif_guru ?? true,
                         ]);
                     })
 
+                    // =========================
+                    // SIMPAN DATA
+                    // =========================
                     ->action(function ($record, array $data) {
+
                         WaTemplate::updateOrCreate(
                             ['lembaga_id' => $record->lembaga_id],
                             [
-                                'header' => $data['header'],
-                                'footer' => $data['footer'],
-                                'aktif'  => $data['aktif'],
+                                'header_orang_tua' => $data['header_orang_tua'],
+                                'footer_orang_tua' => $data['footer_orang_tua'],
+                                'aktif_orang_tua'  => $data['aktif_orang_tua'] ?? false,
+
+                                'header_guru' => $data['header_guru'],
+                                'footer_guru' => $data['footer_guru'],
+                                'aktif_guru'  => $data['aktif_guru'] ?? false,
                             ]
                         );
                     })

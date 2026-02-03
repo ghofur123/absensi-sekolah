@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AbsensiGuru;
 use App\Models\Jadwal;
+use App\Models\LembagaSetting;
+use App\Models\WaTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use PhpParser\Node\Scalar\String_;
@@ -17,7 +19,7 @@ class WhatsappFilamentController extends Controller
         string $noWa,
         string $namaSiswa,
         string $status,
-        // string $token
+        int $lembagaId
     ) {
 
         // ======================
@@ -39,20 +41,18 @@ class WhatsappFilamentController extends Controller
         // ======================
         // FORMAT PESAN
         // ======================
+        $template = WaTemplate::firstOrNew([
+            'lembaga_id' => $lembagaId,
+        ]);
+
         $pesan =
-            "Informasi Absensi Peserta Didik\n"
-            . ". اَلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَا تُهُ\n"
-            . "YPI Nurul Mannan\n"
-            . "================================\n"
+            $template->header_orang_tua . "\n"
             . "Nama : {$namaSiswa}\n"
             . "Status kehadiran hari ini: *" . strtoupper($status) . "*\n\n"
-            . "================================\n"
-            . "Tidak Perlu Balas Pesan Ini Karena Pesan Otomatis dari sistem kami\n"
-            . "ada pertanyaan silahkan hubungi kami di nomor ini\n"
-            . "Admin 1 : 08123456789\n"
-            . "Admin 2 : 08123456789\n"
-            . "YPI Nurul Mannan\n";
+            . $template->footer_orang_tua . "\n";
 
+        // ambil token
+        $token = LembagaSetting::where('lembaga_id', $lembagaId)->first()->fonnte_token;
         // ======================
         // CURL KE FONNTE
         // ======================
@@ -68,7 +68,7 @@ class WhatsappFilamentController extends Controller
                 'countryCode' => '62',
             ],
             CURLOPT_HTTPHEADER => [
-                'Authorization: ' . "r3UpUKoSLk17fkytNyMB",
+                'Authorization: ' . $token,
             ],
         ]);
 
@@ -117,17 +117,21 @@ class WhatsappFilamentController extends Controller
 
         foreach ($semuaGuru as $guru) {
             if ($absensiHariIni->has($guru->id)) {
-                $sudahAbsen[] = $guru->nama;
+                $sudahAbsen[] = $guru->nama . ' (' . $absensiHariIni->keterangan . ')';
             } else {
                 $belumAbsen[] = $guru->nama;
             }
         }
 
+        $template = WaTemplate::firstOrNew([
+            'lembaga_id' => $jadwal->lembaga_id,
+        ]);
+        $token = $jadwal->lembaga->lembagaSetting->fonnte_token;
         // 4. Format pesan
         $tanggalFormat = now()->translatedFormat('l, d F Y');
 
         $pesan =
-            "📋 *ABSENSI GURU HARI INI*\n"
+            $template->header_guru . "\n"
             . "🗓 {$tanggalFormat}\n\n"
 
             . "✅ *SUDAH ABSEN* (" . count($sudahAbsen) . ")\n"
@@ -137,7 +141,7 @@ class WhatsappFilamentController extends Controller
             . self::buatList($belumAbsen) . "\n\n"
 
             . "—\n"
-            . "_Pesan otomatis dari Sistem Absensi Digital_";
+            . $template->footer_guru;
 
         // 5. Kirim WA Group
         $curl = curl_init();
@@ -151,7 +155,7 @@ class WhatsappFilamentController extends Controller
                 'message' => $pesan,
             ],
             CURLOPT_HTTPHEADER => [
-                'Authorization: ' . "r3UpUKoSLk17fkytNyMB",
+                'Authorization: ' . $token,
             ],
         ]);
 

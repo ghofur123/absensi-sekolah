@@ -120,8 +120,8 @@ class AbsensiResource extends Resource
                         }
 
                         // 6. Toleransi
-                        $batasAwal = $mulai->copy()->subMinutes(15);
-                        $batasPas  = $mulai->copy()->addMinutes(15);
+                        $batasAwal = $mulai->copy()->subMinutes($record->jadwal->batas_awal);
+                        $batasPas  = $mulai->copy()->addMinutes($record->jadwal->batas_pas);
 
                         // 7. Logika final
                         if ($scan->lt($batasAwal)) {

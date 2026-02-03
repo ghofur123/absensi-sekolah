@@ -24,4 +24,8 @@ class Lembaga extends Model implements HasMedia
     {
         return $this->hasMany(Kelas::class);
     }
+    public function lembagaSetting()
+    {
+        return $this->hasOne(LembagaSetting::class);
+    }
 }
