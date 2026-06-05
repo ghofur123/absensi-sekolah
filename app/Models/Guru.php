@@ -11,6 +11,8 @@ class Guru extends Model
         'user_id',
         'nama',
         'nik',
+        'status_pegawai',
+        'status_sertifikasi',
     ];
 
     public function lembaga()

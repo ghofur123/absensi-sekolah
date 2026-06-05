@@ -24,7 +24,8 @@ return new class extends Migration
 
             $table->string('nama');
             $table->string('nik');
-
+            $table->string('status_pegawai')->nullable();
+            $table->string('status_sertifikasi')->nullable();
             $table->timestamps();
 
             $table->unique(['lembaga_id', 'nik']);

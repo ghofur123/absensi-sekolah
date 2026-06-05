@@ -23,25 +23,25 @@ Route::get('/', function () {
 // });
 Route::get('/run-artisan', function () {
     // Clear dan cache config
-    // Artisan::call('config:clear');
-    // Artisan::call('config:cache');
+    Artisan::call('config:clear');
+    Artisan::call('config:cache');
 
-    // // Clear dan cache route
-    // Artisan::call('route:clear');
-    // Artisan::call('route:cache');
+    // Clear dan cache route
+    Artisan::call('route:clear');
+    Artisan::call('route:cache');
 
-    // // Clear dan cache views
-    // Artisan::call('view:clear');
-    // Artisan::call('view:cache');
+    // Clear dan cache views
+    Artisan::call('view:clear');
+    Artisan::call('view:cache');
 
-    // // Jalankan migrasi database
+    // Jalankan migrasi database
     // Artisan::call('migrate', ['--force' => true]);
 
-    // // Cache ulang komponen Filament
-    // Artisan::call('filament:cache-components');
+    // Cache ulang komponen Filament
+    Artisan::call('filament:cache-components');
 
-    // // Jika perlu, buat ulang storage symlink
-    // Artisan::call('storage:link');
+    // Jika perlu, buat ulang storage symlink
+    Artisan::call('storage:link');
 
     return '✅ Semua perintah Artisan berhasil dijalankan!';
 });

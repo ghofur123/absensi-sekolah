@@ -42,13 +42,6 @@ class GuruResource extends Resource
                     ->required()
                     ->preload(),
 
-                // Select::make('user_id')
-                //     ->relationship('user', 'name')
-                //     ->searchable()
-                //     ->preload()
-                //     ->nullable()
-                //     ->helperText('Opsional, jika guru memiliki akun login'),
-
                 TextInput::make('nama')
                     ->required()
                     ->maxLength(255),
@@ -57,6 +50,26 @@ class GuruResource extends Resource
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(50),
+                Select::make('status_pegawai')
+                    ->label('Status Pegawai')
+                    ->options([
+                        'pns' => 'PNS',
+                        'pppk' => 'PPPK',
+                        'honorer' => 'Honorer',
+                        'gty' => 'Guru Tetap Yayasan',
+                        'gtt' => 'Guru Tidak Tetap',
+                    ])
+                    ->required()
+                    ->native(false),
+
+                Select::make('status_sertifikasi')
+                    ->label('Status Sertifikasi')
+                    ->options([
+                        'sudah' => 'Sudah Sertifikasi',
+                        'belum' => 'Belum Sertifikasi',
+                    ])
+                    ->required()
+                    ->native(false),
             ]);
     }
 
@@ -78,6 +91,22 @@ class GuruResource extends Resource
                 TextColumn::make('user.email')
                     ->label('Akun')
                     ->default('-'),
+                TextColumn::make('status_pegawai')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'pns' => 'success',
+                        'pppk' => 'info',
+                        'honorer' => 'warning',
+                        'gty' => 'primary',
+                        'gtt' => 'primary',
+                    }),
+
+                TextColumn::make('status_sertifikasi')
+                    ->badge()
+                    ->color(
+                        fn(string $state): string =>
+                        $state === 'sudah' ? 'success' : 'danger'
+                    ),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('lembaga')

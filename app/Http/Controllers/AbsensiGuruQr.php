@@ -6,6 +6,7 @@ use App\Models\AbsensiGuru;
 use App\Models\Jadwal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AbsensiGuruQr extends Controller
 {
@@ -32,7 +33,7 @@ class AbsensiGuruQr extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'QR tidak valid',
-            ]);
+            ], 422);
         }
 
         $jadwalId = (int) str_replace('JADWAL:', '', $request->qr);
@@ -46,14 +47,14 @@ class AbsensiGuruQr extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Jadwal atau lembaga tidak ditemukan',
-            ]);
+            ], 404);
         }
 
         if (! $jadwal->jam_mulai) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Jam mulai jadwal belum diatur',
-            ]);
+            ], 422);
         }
 
         $lembaga = $jadwal->lembaga;
@@ -65,7 +66,7 @@ class AbsensiGuruQr extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Koordinat lembaga belum diatur',
-            ]);
+            ], 422);
         }
 
         // =========================
@@ -75,19 +76,19 @@ class AbsensiGuruQr extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Lokasi Anda tidak terdeteksi',
-            ]);
+            ], 422);
         }
 
         // =========================
         // AMBIL GURU LOGIN
         // =========================
-        $guru = auth()->user()->guru ?? null;
+        $guru = auth()->user()?->guru;
 
         if (! $guru) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Akun tidak terhubung dengan data guru',
-            ]);
+            ], 403);
         }
 
         // =========================
@@ -108,11 +109,11 @@ class AbsensiGuruQr extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Anda sudah absen hari ini',
-            ]);
+            ], 409);
         }
 
         // =========================
-        // HITUNG JARAK
+        // HITUNG JARAK (HAVERSINE)
         // =========================
         $jarak = $this->hitungJarak(
             $request->latitude,
@@ -125,60 +126,86 @@ class AbsensiGuruQr extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Anda di luar radius absensi',
-            ]);
+            ], 403);
         }
 
         // =========================
-        // STATUS MASUK (ENUM)
+        // HITUNG STATUS MASUK (SESUI ENUM DB)
+        // ENUM DB: tepat_waktu, terlambat
         // =========================
         $jamMulai = Carbon::today('Asia/Jakarta')
             ->setTimeFromTimeString($jadwal->jam_mulai);
 
         $batasTerlambat = $jamMulai->copy()->addMinutes($jadwal->batas_pas);
 
-        $statusMasuk = 'belum_waktu';
-        $keterangan  = 'Scan sebelum jam mulai (' . $waktuScan->format('H:i') . ')';
+        $statusMasuk = null;
+        $keterangan  = null;
 
-        if ($waktuScan->gte($jamMulai) && $waktuScan->lte($batasTerlambat)) {
+        if ($waktuScan->lt($jamMulai)) {
+            $statusMasuk = 'belum_waktu';
+            $keterangan = 'Scan sebelum jam mulai (' . $waktuScan->format('H:i') . ')';
+        } elseif ($waktuScan->lte($batasTerlambat)) {
             $statusMasuk = 'tepat_waktu';
-            $keterangan  = 'Scan tepat waktu (' . $waktuScan->format('H:i') . ')';
-        } elseif ($waktuScan->gt($batasTerlambat)) {
+            $keterangan = 'Scan tepat waktu (' . $waktuScan->format('H:i') . ')';
+        } else {
             $statusMasuk = 'terlambat';
+            $selisih = $batasTerlambat->diffInMinutes($waktuScan);
 
-            // ⏱ hitung selisih keterlambatan
-            $selisihMenit = $batasTerlambat->diffInMinutes($waktuScan);
-
-            if ($selisihMenit >= 60) {
-                $jam   = intdiv($selisihMenit, 60);
-                $menit = $selisihMenit % 60;
-
+            if ($selisih >= 60) {
+                $jam = intdiv($selisih, 60);
+                $menit = $selisih % 60;
                 $keterangan = "Terlambat {$jam} jam {$menit} menit (scan {$waktuScan->format('H:i')})";
             } else {
-                $keterangan = "Terlambat {$selisihMenit} menit (scan {$waktuScan->format('H:i')})";
+                $keterangan = "Terlambat {$selisih} menit (scan {$waktuScan->format('H:i')})";
             }
         }
 
         // =========================
-        // SIMPAN ABSENSI
+        // SIMPAN ABSENSI (SAFE)
         // =========================
-        AbsensiGuru::create([
-            'lembaga_id'   => $lembaga->id,
-            'guru_id'      => $guru->id,
-            'jadwal_id'    => $jadwal->id,
-            'tanggal'      => $waktuScan->toDateString(),
-            'waktu_scan'   => $waktuScan,
-            'latitude'     => $request->latitude,
-            'longitude'    => $request->longitude,
-            'jarak_meter'  => $jarak,
-            'radius_valid' => true,
-            'metode'       => 'qr',
-            'status'       => 'hadir',
-            'status_masuk' => $statusMasuk,
-            'keterangan'   => $keterangan,
-        ]);
+        try {
+            AbsensiGuru::create([
+                'lembaga_id'   => $lembaga->id,
+                'guru_id'      => $guru->id,
+                'jadwal_id'    => $jadwal->id,
+                'tanggal'      => $waktuScan->toDateString(),
+                'waktu_scan'   => $waktuScan,
+                'latitude'     => $request->latitude,
+                'longitude'    => $request->longitude,
+                'jarak_meter'  => $jarak,
+                'radius_valid' => true,
+                'metode'       => 'qr',
+                'status'       => 'hadir',
+                'status_masuk' => $statusMasuk,
+                'keterangan'   => $keterangan,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Gagal simpan absensi guru', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal menyimpan absensi',
+            ], 500);
+        }
+
+        // =========================
+        // KIRIM WHATSAPP (OPTIONAL)
+        // =========================
+        // try {
         WhatsappFilamentController::kirimRekapAbsensiGuruGroup(
             $jadwal->id
         );
+        // } catch (\Throwable $e) {
+        //     \Log::error('Gagal kirim WA absensi guru', [
+        //         'jadwal_id' => $jadwal->id,
+        //         'error' => $e->getMessage(),
+        //     ]);
+        // }
+        // =========================
+        // RESPONSE SUKSES
+        // =========================
         return response()->json([
             'status'       => 'success',
             'nama'         => $guru->nama,
@@ -186,7 +213,6 @@ class AbsensiGuruQr extends Controller
             'keterangan'   => $keterangan,
             'jarak'        => $jarak,
         ]);
-        // end kirim pesan ke group absensi guru
     }
 
     // =========================

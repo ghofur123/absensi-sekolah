@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AbsensiGuru;
+use App\Models\Guru;
 use App\Models\Jadwal;
 use App\Models\LembagaSetting;
 use App\Models\WaTemplate;
@@ -98,73 +99,113 @@ class WhatsappFilamentController extends Controller
 
     public static function kirimRekapAbsensiGuruGroup(int $jadwalId)
     {
-        $tanggal = now()->toDateString();
+        try {
+            $tanggal = now()->toDateString();
 
-        // 1. Ambil jadwal
-        $jadwal = Jadwal::with('lembaga.gurus')->findOrFail($jadwalId);
+            $jadwal = Jadwal::with(['lembaga.lembagaSetting'])
+                ->findOrFail($jadwalId);
 
-        // 2. Semua guru di lembaga
-        $semuaGuru = $jadwal->lembaga->gurus;
+            $token = optional($jadwal->lembaga->lembagaSetting)->fonnte_token;
+            $groupId = '120363403312912675@g.us';
 
-        // 3. Ambil absensi hari ini
-        $absensiHariIni = AbsensiGuru::where('jadwal_id', $jadwalId)
-            ->whereDate('tanggal', $tanggal)
-            ->get()
-            ->keyBy('guru_id');
-
-        $sudahAbsen = [];
-        $belumAbsen = [];
-
-        foreach ($semuaGuru as $guru) {
-            if ($absensiHariIni->has($guru->id)) {
-                $sudahAbsen[] = $guru->nama . ' (' . $absensiHariIni->keterangan . ')';
-            } else {
-                $belumAbsen[] = $guru->nama;
+            if (! $token) {
+                Log::error('Setting WA guru belum lengkap', [
+                    'lembaga_id' => $jadwal->lembaga_id
+                ]);
+                return false;
             }
+
+            // ===============================
+            // AMBIL ABSENSI HARI INI (PASTI VALID)
+            // ===============================
+            $absensiHariIni = AbsensiGuru::where('jadwal_id', $jadwalId)
+                ->whereDate('tanggal', $tanggal)
+                ->get()
+                ->keyBy('guru_id');
+
+            // ===============================
+            // AMBIL GURU DARI ABSENSI (FIX UTAMA)
+            // ===============================
+            $semuaGuru = Guru::where('lembaga_id', $jadwal->lembaga_id)->get();
+
+            $sudahAbsen = [];
+            $belumAbsen = [];
+
+            foreach ($semuaGuru as $guru) {
+
+                if ($absensiHariIni->has($guru->id)) {
+
+                    $absen = $absensiHariIni[$guru->id];
+                    $ket = $absen->keterangan ?? ucfirst($absen->status);
+
+                    $sudahAbsen[] =
+                        "*{$guru->nama}* ({$ket})" .
+                        " Sertifikasi : {$guru->status_sertifikasi}";
+                } else {
+
+                    $belumAbsen[] =
+                        "{$guru->nama}" .
+                        " Sertifikasi : {$guru->status_sertifikasi}";
+                }
+            }
+
+
+            // ===============================
+            // TEMPLATE WA
+            // ===============================
+            $template = WaTemplate::firstOrNew([
+                'lembaga_id' => $jadwal->lembaga_id,
+            ]);
+
+            $header = $template->header_guru ?? '📊 *REKAP ABSENSI GURU*';
+            $footer = $template->footer_guru ?? '';
+
+            $tanggalFormat = now()->translatedFormat('l, d F Y');
+
+            $pesan =
+                $header . "\n"
+                . "🗓 {$tanggalFormat}\n\n"
+                . "✅ *SUDAH ABSEN* (" . count($sudahAbsen) . ")\n"
+                . self::buatList($sudahAbsen) . "\n\n"
+                . "❌ *BELUM ABSEN* (" . count($belumAbsen) . ")\n"
+                . self::buatList($belumAbsen) . "\n\n"
+                . $footer;
+
+            // ===============================
+            // KIRIM KE FONNTE
+            // ===============================
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => 'https://api.fonnte.com/send',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => [
+                    'target'  => $groupId,
+                    'message' => $pesan,
+                ],
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: ' . $token,
+                ],
+            ]);
+
+            $response = curl_exec($curl);
+            $error = curl_error($curl);
+            curl_close($curl);
+
+            if ($error) {
+                Log::error('Fonnte Group Error', compact('error', 'response'));
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::error('Gagal kirim WA rekap guru', [
+                'error' => $e->getMessage()
+            ]);
+            return false;
         }
-
-        $template = WaTemplate::firstOrNew([
-            'lembaga_id' => $jadwal->lembaga_id,
-        ]);
-        $token = $jadwal->lembaga->lembagaSetting->fonnte_token;
-        // 4. Format pesan
-        $tanggalFormat = now()->translatedFormat('l, d F Y');
-
-        $pesan =
-            $template->header_guru . "\n"
-            . "🗓 {$tanggalFormat}\n\n"
-
-            . "✅ *SUDAH ABSEN* (" . count($sudahAbsen) . ")\n"
-            . self::buatList($sudahAbsen) . "\n\n"
-
-            . "❌ *BELUM ABSEN* (" . count($belumAbsen) . ")\n"
-            . self::buatList($belumAbsen) . "\n\n"
-
-            . "—\n"
-            . $template->footer_guru;
-
-        // 5. Kirim WA Group
-        $curl = curl_init();
-
-        curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.fonnte.com/send',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => [
-                'target'  => "120363403312912675@g.us",
-                'message' => $pesan,
-            ],
-            CURLOPT_HTTPHEADER => [
-                'Authorization: ' . $token,
-            ],
-        ]);
-
-        curl_exec($curl);
-        $error = curl_error($curl);
-        curl_close($curl);
-
-        return empty($error);
     }
+
     private static function buatList(array $data): string
     {
         if (count($data) === 0) {
